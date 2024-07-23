@@ -5,6 +5,7 @@ import ctypes
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import tkinter as tk
+import time
 
 MD = ctypes.CDLL("/home/oskar/projects/molecularDynamics/src/cFiles/molecularDynamics.so")
 
@@ -84,23 +85,22 @@ def printSim(sim):
     for ii in range(sim.nParticles):
         print(f"({sim.particles[ii].pos.x:.2f}, {sim.particles[ii].pos.y:.2f}) | ({sim.particles[ii].vel.x:.2f}, {sim.particles[ii].vel.y:.2f}) | ({sim.particles[ii].force.x:.2f}, {sim.particles[ii].force.y:.2f})")
 
-def runSimulation(sim, nSteps, visStep, canvas, ax, isPrint = False):
+def runSimulation(sim, nSteps, visStep, canvas, ax, isVis = True):
     def update_simulation():
         nonlocal totalSteps
         if totalSteps < nSteps:
             run(sim, visStep)
             totalSteps += visStep
-            visualiseSim(sim, ax)
-            canvas.draw()
-            if isPrint: 
-                printSim(sim)
+            if(isVis): 
+                visualiseSim(sim, ax)
+                canvas.draw()
             root.after(10, update_simulation)  # Schedule next update
         else:
             root.quit()
             plt.close()
 
     totalSteps = 0
-    visualiseSim(sim, ax)
+    #visualiseSim(sim, ax)
     update_simulation()
 
 
@@ -116,16 +116,16 @@ canvas = FigureCanvasTkAgg(fig, master=root)
 canvas.get_tk_widget().pack()
 
 # Create the simulation
-sim = newSimulation(60, 60, 32)
+sim = newSimulation(100, 100, 256)
 initialise(sim)
 
 # Run the simulation
-runSimulation(sim, 1000, 10, canvas, ax)
+start = time.time()
+runSimulation(sim, 1000, 10, canvas, ax, True)
 
 # Start Tkinter main loop
 root.mainloop()
-
-printSim(sim)
+print(f"Simulation complete! Time taken: {time.time()-start}")
 
 
 
