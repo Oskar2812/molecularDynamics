@@ -22,6 +22,7 @@ class Simulation(ctypes.Structure):
     _fields_ = [("boxX", ctypes.c_double),
                 ("boxY", ctypes.c_double),
                 ("nParticles", ctypes.c_int),
+                ("timestep", ctypes.c_int),
                 ("particles", ctypes.POINTER(Particle))]
 
 newVector2 = MD.newVector2
@@ -75,6 +76,7 @@ def visualiseSim(sim, ax):
 
     ax.set_xlim(0, sim.boxX)
     ax.set_ylim(0, sim.boxY)
+    ax.set_title(f"Tmestep: {sim.timestep}")
     plt.draw()
 
 def printSim(sim):
@@ -114,7 +116,7 @@ canvas = FigureCanvasTkAgg(fig, master=root)
 canvas.get_tk_widget().pack()
 
 # Create the simulation
-sim = newSimulation(100, 100, 64)
+sim = newSimulation(60, 60, 32)
 initialise(sim)
 
 # Run the simulation
