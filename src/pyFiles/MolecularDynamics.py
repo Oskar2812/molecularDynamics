@@ -114,11 +114,11 @@ canvas = FigureCanvasTkAgg(fig, master=root)
 canvas.get_tk_widget().pack()
 
 # Create the simulation
-sim = newSimulation(10, 10, 4)
+sim = newSimulation(100, 100, 64)
 initialise(sim)
 
 # Run the simulation
-runSimulation(sim, 1000, 50, canvas, ax)
+runSimulation(sim, 1000, 10, canvas, ax)
 
 # Start Tkinter main loop
 root.mainloop()

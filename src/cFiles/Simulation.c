@@ -56,10 +56,10 @@ void calculateForces(Simulation* sim){
             sim->particles[jj].force.x -= newForce.x;
             sim->particles[jj].force.y -= newForce.y;
 
-            if(sim->particles[ii].pos.x < 0) newForce.x += force;
-            if(sim->particles[ii].pos.x > sim->boxX) newForce.x -= force;
-            if(sim->particles[ii].pos.y < 0) newForce.y += force;
-            if(sim->particles[ii].pos.y > sim->boxY) newForce.y -= force;
+            // if(sim->particles[ii].pos.x < 0) newForce.x += force;
+            // if(sim->particles[ii].pos.x > sim->boxX) newForce.x -= force;
+            // if(sim->particles[ii].pos.y < 0) newForce.y += force;
+            // if(sim->particles[ii].pos.y > sim->boxY) newForce.y -= force;
             
             sim->particles[ii].force.x += newForce.x;
             sim->particles[ii].force.y += newForce.y;
@@ -77,6 +77,23 @@ void run(Simulation* sim, int nSteps){
             sim->particles[ii].vel = vHalf;
 
             Vector2 newPos = add(sim->particles[ii].pos, mul(vHalf, dt));
+
+            if(newPos.x < 0) { 
+                newPos.x = 0;
+                sim->particles[ii].vel.x *= -1;
+            }
+            if(newPos.x > sim->boxX) {
+                newPos.x = sim->boxX;
+                sim->particles[ii].vel.x *= -1;
+            }
+            if(newPos.y < 0) {
+                newPos.y = 0;
+                sim->particles[ii].vel.y *= -1;
+            }
+            if(newPos.y > sim->boxY) {
+                newPos.y = sim->boxY;
+                sim->particles[ii].vel.y *= -1;
+            }
             sim->particles[ii].pos = newPos;
         }
 
