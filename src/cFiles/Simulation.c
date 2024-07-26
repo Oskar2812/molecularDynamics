@@ -28,8 +28,8 @@ void initialise(Simulation* sim){
         double newX = ((double) rand() / RAND_MAX) * sim->boxX;
         double newY = ((double) rand() / RAND_MAX) * sim->boxY;
 
-        double newVx = ((double) rand() / RAND_MAX) * 0.1 * sim->boxX;
-        double newVy = ((double) rand() / RAND_MAX) * 0.1 * sim->boxY;
+        double newVx = (((double) rand() / RAND_MAX) - 0.5) * 0.1 * sim->boxX;
+        double newVy = (((double) rand() / RAND_MAX) - 0.5) * 0.1 * sim->boxY;
 
         sim->particles[ii] = newParticle(id, newVector2(newX, newY), newVector2(newVx, newVy));
     }
