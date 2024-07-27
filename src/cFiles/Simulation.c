@@ -1,10 +1,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <math.h>
 
 #include "/home/oskar/projects/molecularDynamics/include/Simulation.h"
 
-Simulation newSimulation(double boxX, double boxY, int nParticles, double (*potential)(double)){
+Simulation newSimulation(double boxX, double boxY, int nParticles, double (*potential)(double), double kT){
     Simulation result;
 
     result.boxX = boxX;
@@ -18,8 +19,26 @@ Simulation newSimulation(double boxX, double boxY, int nParticles, double (*pote
 
     result.potential = potential;
 
+    result.kT = kT;
+
     return result;
 }
+
+double generateStandardNormal() {
+    static const double PI = 3.14159265358979323846;
+    double u1 = ((double) rand() / RAND_MAX);
+    double u2 = ((double) rand() / RAND_MAX);
+    double z0 = sqrt(-2.0 * log(u1)) * cos(2.0 * PI * u2);
+    // Optionally, you can generate another independent standard normal random variable:
+    // double z1 = sqrt(-2.0 * log(u1)) * sin(2.0 * PI * u2);
+    return z0;
+}
+
+// Function to generate a random number following a normal distribution with mean and standard deviation
+double generateNormal(double mean, double stddev) {
+    return mean + stddev * generateStandardNormal();
+}
+
 
 void initialise(Simulation* sim){
     srand(0);
@@ -30,10 +49,31 @@ void initialise(Simulation* sim){
         double newX = ((double) rand() / RAND_MAX) * sim->boxX;
         double newY = ((double) rand() / RAND_MAX) * sim->boxY;
 
-        double newVx = (((double) rand() / RAND_MAX) - 0.5) * 0.1 * sim->boxX;
-        double newVy = (((double) rand() / RAND_MAX) - 0.5) * 0.1 * sim->boxY;
+        double newVx = (((double) rand() / RAND_MAX) * 2) - 1;
+        double newVy = (((double) rand() / RAND_MAX) * 2) - 1;
+
+        Vector2 newV = newVector2(newVx, newVy);
+        newV = mul(newV, mag(newV));
+        newV = mul(newV,generateNormal(sim->kT, sqrt(sim->kT)));
+
 
         sim->particles[ii] = newParticle(id, newVector2(newX, newY), newVector2(newVx, newVy));
+    }
+
+    double meanKTx = 0;
+    double meanKTy = 0;
+
+    for(int ii = 0; ii < sim->nParticles; ii++){
+        meanKTx += 0.5 * sim->particles[ii].vel.x * sim->particles[ii].vel.x;
+        meanKTy += 0.5 * sim->particles[ii].vel.y * sim->particles[ii].vel.y;
+    }
+
+    meanKTx /= sim->nParticles;
+    meanKTy /= sim->nParticles;
+
+    for(int ii = 0; ii < sim->nParticles; ii++){
+        sim->particles[ii].vel.x = sim->particles[ii].vel.x - meanKTx;
+        sim->particles[ii].vel.y = sim->particles[ii].vel.y - meanKTy;
     }
 }
 
@@ -113,4 +153,8 @@ void run(Simulation* sim, int nSteps){
 
         sim->timestep++;
     }
+}
+
+void freeSimulation(Simulation* sim){
+    free(sim->particles);
 }

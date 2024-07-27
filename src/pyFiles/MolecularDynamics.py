@@ -22,7 +22,8 @@ class Simulation(ctypes.Structure):
                 ("nParticles", ctypes.c_int),
                 ("timestep", ctypes.c_int),
                 ("particles", ctypes.POINTER(Particle)),
-                ("potential", ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double))]
+                ("potential", ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double)),
+                ("kT", ctypes.c_double)]
 
 newVector2 = MD.newVector2
 newVector2.argtypes = [ctypes.c_double,ctypes.c_double]
@@ -49,7 +50,8 @@ newParticle.argtypes = [ctypes.c_int, Vector2, Vector2]
 newParticle.restype = Particle
 
 newSimulation = MD.newSimulation
-newSimulation.argtypes = [ctypes.c_double, ctypes.c_double, ctypes.c_int, ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double)]
+newSimulation.argtypes = [ctypes.c_double, ctypes.c_double, ctypes.c_int, 
+                          ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double), ctypes.c_double]
 newSimulation.restype = Simulation
 
 initialise = MD.initialise
@@ -71,6 +73,10 @@ calculateForces.restype = None
 run = MD.run
 run.argtypes = [ctypes.POINTER(Simulation), ctypes.c_int]
 run.restype = None
+
+freeSimulation = MD.freeSimulation
+freeSimulation.argtypes = [ctypes.POINTER(Simulation)]
+freeSimulation.restype = None
 
 def printSim(sim):
     print("Postions:    | Velocities:    | Forces:     ")
@@ -136,12 +142,14 @@ def runSimulation(sim, visStep):
 
 # Create the simulation
 potential = ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double)(LJPotential)
-sim = newSimulation(100, 100, 128, potential)
+sim = newSimulation(100, 100, 128, potential, 5)
 initialise(sim)
 
 # Run the simulation
 start = time.time()
-runSimulation(sim, 100)
+runSimulation(sim, 1)
+
+freeSimulation(sim)
 
 print(f"Simulation complete! Time taken: {time.time()-start}")
 

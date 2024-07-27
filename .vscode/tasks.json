@@ -12,7 +12,9 @@
                 "-fPIC",
                 "/home/oskar/projects/molecularDynamics/src/cFiles/Vector2.c",
                 "/home/oskar/projects/molecularDynamics/src/cFiles/Particle.c",
-                "/home/oskar/projects/molecularDynamics/src/cFiles/Simulation.c"
+                "/home/oskar/projects/molecularDynamics/src/cFiles/Simulation.c",
+                "-Wall",
+                "-Werror"
             ],
             "options": {
                 "cwd": "${fileDirname}"
