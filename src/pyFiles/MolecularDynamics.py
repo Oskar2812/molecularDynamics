@@ -1,11 +1,8 @@
-import matplotlib
-matplotlib.use('TkAgg')
-
 import ctypes
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import tkinter as tk
 import time
+
+import pyqtgraph as pg
+from pyqtgraph.Qt import QtGui, QtCore, QtWidgets
 
 MD = ctypes.CDLL("/home/oskar/projects/molecularDynamics/src/cFiles/molecularDynamics.so")
 
@@ -70,61 +67,76 @@ run = MD.run
 run.argtypes = [ctypes.POINTER(Simulation), ctypes.c_int]
 run.restype = None
 
-def visualiseSim(sim, ax):
-    ax.clear()
-    for ii in range(sim.nParticles):
-        ax.scatter(sim.particles[ii].pos.x, sim.particles[ii].pos.y, color = 'r', s = 3.14 * (2.5)**2)
-
-    ax.set_xlim(0, sim.boxX)
-    ax.set_ylim(0, sim.boxY)
-    ax.set_title(f"Tmestep: {sim.timestep}")
-    plt.draw()
-
 def printSim(sim):
     print("Postions:    | Velocities:    | Forces:     ")
     for ii in range(sim.nParticles):
         print(f"({sim.particles[ii].pos.x:.2f}, {sim.particles[ii].pos.y:.2f}) | ({sim.particles[ii].vel.x:.2f}, {sim.particles[ii].vel.y:.2f}) | ({sim.particles[ii].force.x:.2f}, {sim.particles[ii].force.y:.2f})")
 
-def runSimulation(sim, nSteps, visStep, canvas, ax, isVis = True):
-    def update_simulation():
-        nonlocal totalSteps
-        if totalSteps < nSteps:
-            run(sim, visStep)
-            totalSteps += visStep
-            if(isVis): 
-                visualiseSim(sim, ax)
-                canvas.draw()
-            root.after(10, update_simulation)  # Schedule next update
-        else:
-            root.quit()
-            plt.close()
-
-    totalSteps = 0
-    #visualiseSim(sim, ax)
-    update_simulation()
+def particlePosToArray(sim):
+    result = []
+    for ii in range(sim.nParticles):
+        result.append([sim.particles[ii].pos.x, sim.particles[ii].pos.y])
+    
+    return result
 
 
-# Initialize Tkinter window
-root = tk.Tk()
-root.title("Molecular Dynamics Simulation")
+def runSimulation(sim, visStep):
+    fps = 30
+    updateInterval = int(1000 / fps)
+    app = QtWidgets.QApplication([])
+    win = pg.GraphicsLayoutWidget(show=True)
+    plot = win.addPlot()
 
-# Create Matplotlib figure and axis
-fig, ax = plt.subplots(figsize=(8, 8))
+    particle_radius_sim_units = 1
 
-# Create a canvas widget to display the plot
-canvas = FigureCanvasTkAgg(fig, master=root)
-canvas.get_tk_widget().pack()
+    def calculate_particle_size():
+        plot_area_size = win.size()
+        plot_width_pixels = plot_area_size.width()
+        plot_height_pixels = plot_area_size.height()
+
+        # Assuming the plot area corresponds directly to the simulation box size
+        box_width_sim_units = sim.boxX
+        box_height_sim_units = sim.boxY
+
+        # Calculate pixels per simulation unit
+        pixels_per_unit_x = plot_width_pixels / box_width_sim_units
+        pixels_per_unit_y = plot_height_pixels / box_height_sim_units
+
+        # Use the minimum to ensure particles are not too large
+        pixels_per_unit = min(pixels_per_unit_x, pixels_per_unit_y)
+
+        # Return the diameter in pixels (size is diameter, not radius)
+        return int(particle_radius_sim_units * 2 * pixels_per_unit)
+
+    scatter = pg.ScatterPlotItem(size=calculate_particle_size(), pen=pg.mkPen(None), brush=pg.mkBrush(255, 255, 255, 120))
+    plot.addItem(scatter)
+    plot.setRange(xRange=[0, sim.boxX], yRange=[0, sim.boxY])
+
+    text_item = pg.TextItem('', anchor=(0, 1), color='w', fill=pg.mkBrush(0, 0, 0, 150))
+    plot.addItem(text_item)
+    text_item.setPos(0, sim.boxY)
+    
+    def update():
+        run(sim, visStep)
+        scatter.setData(pos=particlePosToArray(sim))
+        scatter.setSize(calculate_particle_size())
+        text_item.setText(f'Timestep: {sim.timestep}')
+    
+    timer = QtCore.QTimer()
+    timer.timeout.connect(update)
+    timer.start(updateInterval)
+    
+    QtWidgets.QApplication.instance().exec_()
+
 
 # Create the simulation
-sim = newSimulation(100, 100, 512)
+sim = newSimulation(100, 100, 256)
 initialise(sim)
 
 # Run the simulation
 start = time.time()
-runSimulation(sim, 1000, 20, canvas, ax, True)
+runSimulation(sim, 1)
 
-# Start Tkinter main loop
-root.mainloop()
 print(f"Simulation complete! Time taken: {time.time()-start}")
 
 
