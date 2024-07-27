@@ -21,7 +21,8 @@ class Simulation(ctypes.Structure):
                 ("boxY", ctypes.c_double),
                 ("nParticles", ctypes.c_int),
                 ("timestep", ctypes.c_int),
-                ("particles", ctypes.POINTER(Particle))]
+                ("particles", ctypes.POINTER(Particle)),
+                ("potential", ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double))]
 
 newVector2 = MD.newVector2
 newVector2.argtypes = [ctypes.c_double,ctypes.c_double]
@@ -48,7 +49,7 @@ newParticle.argtypes = [ctypes.c_int, Vector2, Vector2]
 newParticle.restype = Particle
 
 newSimulation = MD.newSimulation
-newSimulation.argtypes = [ctypes.c_double, ctypes.c_double, ctypes.c_int]
+newSimulation.argtypes = [ctypes.c_double, ctypes.c_double, ctypes.c_int, ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double)]
 newSimulation.restype = Simulation
 
 initialise = MD.initialise
@@ -58,6 +59,10 @@ initialise.restype = None
 hardDiskPotential = MD.hardDiskPotential
 hardDiskPotential.argtypes = [ctypes.c_double]
 hardDiskPotential.restype = ctypes.c_double
+
+LJPotential = MD.LJPotential
+LJPotential.argtypes = [ctypes.c_double]
+LJPotential.restype = ctypes.c_double
 
 calculateForces = MD.calculateForces
 calculateForces.argtypes = [ctypes.POINTER(Simulation)]
@@ -130,12 +135,13 @@ def runSimulation(sim, visStep):
 
 
 # Create the simulation
-sim = newSimulation(100, 100, 256)
+potential = ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double)(LJPotential)
+sim = newSimulation(100, 100, 128, potential)
 initialise(sim)
 
 # Run the simulation
 start = time.time()
-runSimulation(sim, 1)
+runSimulation(sim, 100)
 
 print(f"Simulation complete! Time taken: {time.time()-start}")
 

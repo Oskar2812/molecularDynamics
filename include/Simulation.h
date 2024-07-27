@@ -14,13 +14,17 @@ typedef struct {
     int nParticles;
     int timestep;
     Particle* particles;
+    double (*potential)(double);
+
 } Simulation;
 
-Simulation newSimulation(double boxX, double boxY, int nParticles);
+Simulation newSimulation(double boxX, double boxY, int nParticles, double (*potential)(double));
 
 void initialise(Simulation* sim);
 
 double hardDiskPotential(double r);
+
+double LJPotential(double r);
 
 void calculateForces(Simulation* sim);
 

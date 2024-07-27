@@ -4,7 +4,7 @@
 
 #include "/home/oskar/projects/molecularDynamics/include/Simulation.h"
 
-Simulation newSimulation(double boxX, double boxY, int nParticles){
+Simulation newSimulation(double boxX, double boxY, int nParticles, double (*potential)(double)){
     Simulation result;
 
     result.boxX = boxX;
@@ -15,6 +15,8 @@ Simulation newSimulation(double boxX, double boxY, int nParticles){
     result.timestep = 0;
 
     result.particles = (Particle*)malloc(sizeof(Particle) * nParticles);
+
+    result.potential = potential;
 
     return result;
 }
@@ -40,6 +42,16 @@ double hardDiskPotential(double r){
     else return 0;
 }
 
+double LJPotential(double r){
+    double r2 = r * r;
+    double r4 = r2 * r2;
+    double r6 = r4 * r2;
+    double r12 = r6 * r6;
+
+    return 1/r12 - 1/r6;
+
+}
+
 void calculateForces(Simulation* sim){
 
     for(int ii = 0; ii < sim->nParticles; ii++){
@@ -51,7 +63,7 @@ void calculateForces(Simulation* sim){
             Vector2 sep = sub(sim->particles[ii].pos, sim->particles[jj].pos);
             double r = mag(sep);
 
-            Vector2 newForce = mul(sep, hardDiskPotential(r));
+            Vector2 newForce = mul(sep, sim->potential(r));
             
             sim->particles[jj].force.x -= newForce.x;
             sim->particles[jj].force.y -= newForce.y;
