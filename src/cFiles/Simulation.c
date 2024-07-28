@@ -16,10 +16,22 @@ Simulation newSimulation(double boxX, double boxY, int nParticles, double (*pote
     result.timestep = 0;
 
     result.particles = (Particle*)malloc(sizeof(Particle) * nParticles);
+    if (result.particles == NULL) {
+        fprintf(stderr, "Failed to allocate memory for particles\n");
+        exit(EXIT_FAILURE);
+    }
 
     result.potential = potential;
 
     result.kT = kT;
+
+    result.pbcFlag = true;
+
+    result.nCellsX = (int) (boxX / cutoff);
+    result.nCellsY = (int) (boxY / cutoff);
+
+    result.cellX = boxX / result.nCellsX;
+    result.cellY = boxY / result.nCellsY;
 
     return result;
 }
@@ -39,6 +51,15 @@ double generateNormal(double mean, double stddev) {
     return mean + stddev * generateStandardNormal();
 }
 
+int mod(int a, int b){
+    int result = a % b;
+
+    if(result < 0){
+        result += b;
+    }
+
+    return result;
+}
 
 void initialise(Simulation* sim){
     srand(0);
@@ -87,9 +108,67 @@ double LJPotential(double r){
     double r4 = r2 * r2;
     double r6 = r4 * r2;
     double r12 = r6 * r6;
+    // double r13 = r12 * r;
+    // double r7 = r6 * rs;
 
     return 1/r12 - 1/r6;
 
+}
+
+void constructCellList(Simulation* sim){
+    for(int ii = 0; ii < sim->nParticles; ii++){
+        int xCell = (int) (sim->particles[ii].pos.x / sim->cellX);
+        int yCell = (int) (sim->particles[ii].pos.y / sim->cellY);
+
+        sim->particles[ii].xCell = xCell;
+        sim->particles[ii].yCell = yCell;
+    }
+}
+
+int* obtainCellTargets(Particle* pp, Simulation* sim){
+    int* result = (int*)malloc(18 * sizeof(int));
+
+    result[0] = mod(pp->xCell - 1, sim->nCellsX);
+    result[1] = mod(pp->yCell - 1, sim->nCellsY);
+
+    result[2] = mod(pp->xCell, sim->nCellsX);
+    result[3] = mod(pp->yCell - 1, sim->nCellsY);
+
+    result[4] = mod(pp->xCell + 1, sim->nCellsX);
+    result[5] = mod(pp->yCell - 1, sim->nCellsY);
+
+    result[6] = mod(pp->xCell - 1, sim->nCellsX);
+    result[7] = mod(pp->yCell, sim->nCellsY);
+
+    result[8] = mod(pp->xCell, sim->nCellsX);
+    result[9] = mod(pp->yCell, sim->nCellsY);
+
+    result[10] = mod(pp->xCell + 1, sim->nCellsX);
+    result[11] = mod(pp->yCell, sim->nCellsY);
+
+    result[12] = mod(pp->xCell - 1, sim->nCellsX);
+    result[13] = mod(pp->yCell + 1, sim->nCellsY);
+
+    result[14] = mod(pp->xCell, sim->nCellsX);
+    result[15] = mod(pp->yCell + 1, sim->nCellsY);
+    
+    result[16] = mod(pp->xCell + 1, sim->nCellsX);
+    result[17] = mod(pp->yCell + 1, sim->nCellsY);
+
+    return result;
+}
+
+bool isAdjacent(int xCell, int yCell, int* targets){
+    bool xCheck = false, yCheck = false;
+
+    for(int ii = 0; ii < 9; ii += 2){
+        if(xCell == targets[ii]) xCheck = true;
+    }
+    for(int jj = 1; jj < 9; jj += 2){
+        if(yCell == targets[jj]) yCheck = true;
+    }
+
+    return xCheck && yCheck;
 }
 
 void calculateForces(Simulation* sim){
@@ -97,20 +176,27 @@ void calculateForces(Simulation* sim){
     for(int ii = 0; ii < sim->nParticles; ii++){
         sim->particles[ii].force = newVector2(0,0);
     }
+
+    constructCellList(sim);
     
     for(int ii = 0; ii < sim->nParticles; ii++){
+        int* targets = obtainCellTargets(&sim->particles[ii], sim);
         for(int jj = ii + 1; jj < sim->nParticles; jj++){
-            Vector2 sep = sub(sim->particles[ii].pos, sim->particles[jj].pos);
-            double r = mag(sep);
+            if(isAdjacent(sim->particles[jj].xCell, sim->particles[ii].yCell, targets)){
+                Vector2 sep = sub(sim->particles[ii].pos, sim->particles[jj].pos);
+                double r = mag(sep);
 
-            Vector2 newForce = mul(sep, sim->potential(r));
-            
-            sim->particles[jj].force.x -= newForce.x;
-            sim->particles[jj].force.y -= newForce.y;
-    
-            sim->particles[ii].force.x += newForce.x;
-            sim->particles[ii].force.y += newForce.y;
+                Vector2 newForce = mul(sep, sim->potential(r));
+                
+                sim->particles[jj].force.x -= newForce.x;
+                sim->particles[jj].force.y -= newForce.y;
+        
+                sim->particles[ii].force.x += newForce.x;
+                sim->particles[ii].force.y += newForce.y;
+            }
         }
+
+        free(targets);
     }
 }
 
@@ -125,22 +211,38 @@ void run(Simulation* sim, int nSteps){
 
             Vector2 newPos = add(sim->particles[ii].pos, mul(vHalf, dt));
 
-            if(newPos.x < 0) { 
+            if(sim->pbcFlag){
+                if(newPos.x < 0) { 
+                newPos.x += sim->boxX;
+                }
+                if(newPos.x > sim->boxX) {
+                    newPos.x -= sim->boxX;
+                }
+                if(newPos.y < 0) {
+                    newPos.y += sim->boxY;
+                }
+                if(newPos.y > sim->boxY) {
+                    newPos.y -= sim->boxY;
+                }
+            } else {
+                if(newPos.x < 0) { 
                 newPos.x = 0;
                 sim->particles[ii].vel.x *= -1;
+                }
+                if(newPos.x > sim->boxX) {
+                    newPos.x = sim->boxX;
+                    sim->particles[ii].vel.x *= -1;
+                }
+                if(newPos.y < 0) {
+                    newPos.y = 0;
+                    sim->particles[ii].vel.y *= -1;
+                }
+                if(newPos.y > sim->boxY) {
+                    newPos.y = sim->boxY;
+                    sim->particles[ii].vel.y *= -1;
+                }
             }
-            if(newPos.x > sim->boxX) {
-                newPos.x = sim->boxX;
-                sim->particles[ii].vel.x *= -1;
-            }
-            if(newPos.y < 0) {
-                newPos.y = 0;
-                sim->particles[ii].vel.y *= -1;
-            }
-            if(newPos.y > sim->boxY) {
-                newPos.y = sim->boxY;
-                sim->particles[ii].vel.y *= -1;
-            }
+
             sim->particles[ii].pos = newPos;
         }
 
@@ -158,3 +260,17 @@ void run(Simulation* sim, int nSteps){
 void freeSimulation(Simulation* sim){
     free(sim->particles);
 }
+
+// int main(){
+
+//     Simulation sim = newSimulation(100,100, 128, LJPotential, 5);
+//     initialise(&sim);
+
+//     run(&sim,1000);
+
+//     printf("%lf\n", sim.particles[0].pos.x);
+
+//     freeSimulation(&sim);
+
+//     return EXIT_SUCCESS;
+// }

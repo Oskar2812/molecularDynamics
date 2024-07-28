@@ -5,6 +5,7 @@
 
 typedef struct{
     int id;
+    int xCell, yCell;
     Vector2 pos;
     Vector2 vel;
     Vector2 force;

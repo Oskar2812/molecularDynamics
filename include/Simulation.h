@@ -2,20 +2,23 @@
 #define SIMUATION_H
 
 #include "Particle.h"
+#include <stdbool.h>
 
 const double radius = 1;
 const double force = 500;
+const double cutoff = 3.5;
 
-const double dt = 0.05;
+const double dt = 0.01;
 
 typedef struct {
-    double boxX;
-    double boxY;
-    int nParticles;
-    int timestep;
+    double boxX, boxY;
+    int nParticles, timestep;
     Particle* particles;
     double (*potential)(double);
     double kT;
+    bool pbcFlag;
+    int nCellsX, nCellsY;
+    double cellX, cellY;
 
 } Simulation;
 
@@ -31,6 +34,8 @@ void calculateForces(Simulation* sim);
 
 void run(Simulation* sim, int nSteps);
 
-void freeSimulatiom(Simulation* sim);
+void freeSimulation(Simulation* sim);
+
+void constructCellList(Simulation* sim);
 
 #endif

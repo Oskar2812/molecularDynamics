@@ -12,6 +12,8 @@ class Vector2(ctypes.Structure):
     
 class Particle(ctypes.Structure):
     _fields_ = [("id", ctypes.c_int),
+                ("xCell", ctypes.c_int),
+                ("yCell", ctypes.c_int),
                 ("pos", Vector2),
                 ("vel", Vector2),
                 ("force", Vector2)]
@@ -23,7 +25,11 @@ class Simulation(ctypes.Structure):
                 ("timestep", ctypes.c_int),
                 ("particles", ctypes.POINTER(Particle)),
                 ("potential", ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double)),
-                ("kT", ctypes.c_double)]
+                ("kT", ctypes.c_double),
+                ("nCellsX", ctypes.c_int),
+                ("nCellsY", ctypes.c_int),
+                ("cellX", ctypes.c_double),
+                ("cellY", ctypes.c_double)]
 
 newVector2 = MD.newVector2
 newVector2.argtypes = [ctypes.c_double,ctypes.c_double]
@@ -141,12 +147,18 @@ def runSimulation(sim, visStep):
 
 
 # Create the simulation
-potential = ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double)(LJPotential)
-sim = newSimulation(100, 100, 128, potential, 5)
+potential = ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double)(hardDiskPotential)
+
+try:
+    sim = newSimulation(100, 100, 128, potential, 5)
+except Exception as e:
+    print(f"Error creating simulation: {e}")
+
 initialise(sim)
 
 # Run the simulation
 start = time.time()
+
 runSimulation(sim, 1)
 
 freeSimulation(sim)
