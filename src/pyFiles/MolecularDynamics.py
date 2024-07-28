@@ -29,7 +29,9 @@ class Simulation(ctypes.Structure):
                 ("nCellsX", ctypes.c_int),
                 ("nCellsY", ctypes.c_int),
                 ("cellX", ctypes.c_double),
-                ("cellY", ctypes.c_double)]
+                ("cellY", ctypes.c_double),
+                ("temperature", ctypes.c_double),
+                ("potEnergy", ctypes.c_double)]
 
 newVector2 = MD.newVector2
 newVector2.argtypes = [ctypes.c_double,ctypes.c_double]
@@ -132,12 +134,31 @@ def runSimulation(sim, visStep):
     text_item = pg.TextItem('', anchor=(0, 1), color='w', fill=pg.mkBrush(0, 0, 0, 150))
     plot.addItem(text_item)
     text_item.setPos(0, sim.boxY)
+
+    # Window for temperature over time
+    win2 = pg.GraphicsLayoutWidget(show=True, title="Temperature Over Time")
+    plot2 = win2.addPlot()
+    temp_curve = plot2.plot()
+    
+    # Window for potential energy over time
+    win3 = pg.GraphicsLayoutWidget(show=True, title="Potential Energy Over Time")
+    plot3 = win3.addPlot()
+    energy_curve = plot3.plot()
+
+    temps = []
+    energies = []
+    timesteps = []
     
     def update():
         run(sim, visStep)
+        temps.append(sim.temperature)
+        energies.append(sim.potEnergy)
+        timesteps.append(sim.timestep)
         scatter.setData(pos=particlePosToArray(sim))
         scatter.setSize(calculate_particle_size())
         text_item.setText(f'Timestep: {sim.timestep}')
+        temp_curve.setData(timesteps, temps)
+        energy_curve.setData(timesteps, energies)
     
     timer = QtCore.QTimer()
     timer.timeout.connect(update)
