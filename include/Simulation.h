@@ -19,6 +19,7 @@ typedef struct {
     bool pbcFlag;
     int nCellsX, nCellsY;
     double cellX, cellY;
+    double temperature, potEnergy;
 
 } Simulation;
 
