@@ -187,7 +187,10 @@ void calculateForces(Simulation* sim){
         for(int jj = ii + 1; jj < sim->nParticles; jj++){
             if(isAdjacent(sim->particles[jj].xCell, sim->particles[ii].yCell, targets)){
                 Vector2 sep = sub(sim->particles[ii].pos, sim->particles[jj].pos);
+
                 double r = mag(sep);
+
+                sep = mul(sep, 1 / (r * r));
 
                 double pot = sim->potential(r);
                 sim->potEnergy += pot;
