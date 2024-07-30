@@ -24,14 +24,15 @@ class Simulation(ctypes.Structure):
                 ("nParticles", ctypes.c_int),
                 ("timestep", ctypes.c_int),
                 ("particles", ctypes.POINTER(Particle)),
-                ("potential", ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double)),
+                ("potential", ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double, ctypes.c_bool)),
                 ("kT", ctypes.c_double),
                 ("nCellsX", ctypes.c_int),
                 ("nCellsY", ctypes.c_int),
                 ("cellX", ctypes.c_double),
                 ("cellY", ctypes.c_double),
                 ("temperature", ctypes.c_double),
-                ("potEnergy", ctypes.c_double)]
+                ("potEnergy", ctypes.c_double),
+                ("netForce", Vector2)]
 
 newVector2 = MD.newVector2
 newVector2.argtypes = [ctypes.c_double,ctypes.c_double]
@@ -59,7 +60,7 @@ newParticle.restype = Particle
 
 newSimulation = MD.newSimulation
 newSimulation.argtypes = [ctypes.c_double, ctypes.c_double, ctypes.c_int, 
-                          ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double), ctypes.c_double]
+                          ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double, ctypes.c_bool), ctypes.c_double]
 newSimulation.restype = Simulation
 
 initialise = MD.initialise
@@ -67,11 +68,11 @@ initialise.argtypes = [ctypes.POINTER(Simulation)]
 initialise.restype = None
 
 hardDiskPotential = MD.hardDiskPotential
-hardDiskPotential.argtypes = [ctypes.c_double]
+hardDiskPotential.argtypes = [ctypes.c_double, ctypes.c_bool]
 hardDiskPotential.restype = ctypes.c_double
 
 LJPotential = MD.LJPotential
-LJPotential.argtypes = [ctypes.c_double]
+LJPotential.argtypes = [ctypes.c_double, ctypes.c_bool]
 LJPotential.restype = ctypes.c_double
 
 calculateForces = MD.calculateForces
@@ -79,17 +80,24 @@ calculateForces.argtypes = [ctypes.POINTER(Simulation)]
 calculateForces.restype = None
 
 run = MD.run
-run.argtypes = [ctypes.POINTER(Simulation), ctypes.c_int]
+run.argtypes = [ctypes.POINTER(Simulation), ctypes.c_int, ctypes.c_bool]
 run.restype = None
 
 freeSimulation = MD.freeSimulation
 freeSimulation.argtypes = [ctypes.POINTER(Simulation)]
 freeSimulation.restype = None
 
-def printSim(sim):
-    print("Postions:    | Velocities:    | Forces:     ")
-    for ii in range(sim.nParticles):
-        print(f"({sim.particles[ii].pos.x:.2f}, {sim.particles[ii].pos.y:.2f}) | ({sim.particles[ii].vel.x:.2f}, {sim.particles[ii].vel.y:.2f}) | ({sim.particles[ii].force.x:.2f}, {sim.particles[ii].force.y:.2f})")
+printSim = MD.printSim
+printSim.argtypes = [ctypes.POINTER(Simulation)]
+printSim.restypes = None
+
+getTemp = MD.getTemp
+getTemp.argtypes = [ctypes.POINTER(Simulation)]
+getTemp.restype = ctypes.c_double
+
+getPot = MD.getPot
+getPot.argtypes = [ctypes.POINTER(Simulation)]
+getPot.restype = ctypes.c_double
 
 def particlePosToArray(sim):
     result = []
@@ -150,9 +158,9 @@ def runSimulation(sim, visStep):
     timesteps = []
     
     def update():
-        run(sim, visStep)
-        temps.append(sim.temperature)
-        energies.append(sim.potEnergy)
+        run(sim, visStep, True)
+        temps.append(getTemp(sim))
+        energies.append(getPot(sim))
         timesteps.append(sim.timestep)
         scatter.setData(pos=particlePosToArray(sim))
         scatter.setSize(calculate_particle_size())
@@ -168,10 +176,10 @@ def runSimulation(sim, visStep):
 
 
 # Create the simulation
-potential = ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double)(hardDiskPotential)
+potential = ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double, ctypes.c_bool)(LJPotential)
 
 try:
-    sim = newSimulation(100, 100, 128, potential, 5)
+    sim = newSimulation(100, 100, 128, potential, 1.5)
 except Exception as e:
     print(f"Error creating simulation: {e}")
 
@@ -180,8 +188,8 @@ initialise(sim)
 # Run the simulation
 start = time.time()
 
-runSimulation(sim, 1)
-
+runSimulation(sim, 1000)
+printSim(sim)
 freeSimulation(sim)
 
 print(f"Simulation complete! Time taken: {time.time()-start}")

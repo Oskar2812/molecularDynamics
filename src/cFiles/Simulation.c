@@ -5,7 +5,7 @@
 
 #include "/home/oskar/projects/molecularDynamics/include/Simulation.h"
 
-Simulation newSimulation(double boxX, double boxY, int nParticles, double (*potential)(double), double kT){
+Simulation newSimulation(double boxX, double boxY, int nParticles, double (*potential)(double, bool), double kT){
     Simulation result;
 
     result.boxX = boxX;
@@ -35,6 +35,7 @@ Simulation newSimulation(double boxX, double boxY, int nParticles, double (*pote
 
     result.temperature = 0;
     result.potEnergy = 0;
+    result.netForce = newVector2(0,0);
 
     return result;
 }
@@ -77,19 +78,19 @@ void initialise(Simulation* sim){
         double newVy = (((double) rand() / RAND_MAX) * 2) - 1;
 
         Vector2 newV = newVector2(newVx, newVy);
-        newV = mul(newV, mag(newV));
+        newV = mul(newV, 1/mag(newV));
         newV = mul(newV,generateNormal(sim->kT, sqrt(sim->kT)));
 
 
-        sim->particles[ii] = newParticle(id, newVector2(newX, newY), newVector2(newVx, newVy));
+        sim->particles[ii] = newParticle(id, newVector2(newX, newY), newV);
     }
 
     double meanKTx = 0;
     double meanKTy = 0;
 
     for(int ii = 0; ii < sim->nParticles; ii++){
-        meanKTx += 0.5 * sim->particles[ii].vel.x * sim->particles[ii].vel.x;
-        meanKTy += 0.5 * sim->particles[ii].vel.y * sim->particles[ii].vel.y;
+        meanKTx += sim->particles[ii].vel.x;
+        meanKTy += sim->particles[ii].vel.y;
     }
 
     meanKTx /= sim->nParticles;
@@ -101,20 +102,48 @@ void initialise(Simulation* sim){
     }
 }
 
-double hardDiskPotential(double r){
+double hardDiskPotential(double r, bool forceFlag){
     if(r <= radius) return force;
     else return 0;
 }
 
-double LJPotential(double r){
+double LJPotential(double r, bool forceFlag){
+
+    double eps = 0.25;
+    double sig = 0.5;
+
+    double rc = 0.5;
+
     double r2 = r * r;
     double r4 = r2 * r2;
     double r6 = r4 * r2;
     double r12 = r6 * r6;
-    // double r13 = r12 * r;
-    // double r7 = r6 * rs;
 
-    return 1/r12 - 1/r6;
+    double sig2 = sig * sig;
+    double sig4 = sig2 * sig2;
+    double sig6 = sig4 * sig2;
+    double sig12 = sig6 * sig6;
+
+    if(forceFlag){
+        double r13 = r12 * r;
+        double r7 = r6 * r;
+
+        if(r < rc){
+            double rc6 = rc * rc * rc * rc *rc * rc;
+            double rc12 = rc6 * rc6;
+            return 4*eps*(12*sig12/(rc12*rc) - 6*sig6/(rc6*rc));
+
+        }
+        return 4*eps*(12*sig12/r13 - 6*sig6/r7);
+    }
+
+    if(r < rc){
+        double rc6 = rc * rc * rc * rc *rc * rc;
+        double rc12 = rc6 * rc6;
+
+        return 4*eps*(sig12/rc12 - sig6/rc6);
+    }
+    return 4*eps*(sig12/r12 - sig6/r6);
 
 }
 
@@ -175,28 +204,33 @@ bool isAdjacent(int xCell, int yCell, int* targets){
 }
 
 void calculateForces(Simulation* sim){
-    sim->potEnergy = 0;
+    //sim->potEnergy = 0;
     for(int ii = 0; ii < sim->nParticles; ii++){
         sim->particles[ii].force = newVector2(0,0);
     }
 
     constructCellList(sim);
-    
     for(int ii = 0; ii < sim->nParticles; ii++){
         int* targets = obtainCellTargets(&sim->particles[ii], sim);
         for(int jj = ii + 1; jj < sim->nParticles; jj++){
-            if(isAdjacent(sim->particles[jj].xCell, sim->particles[ii].yCell, targets)){
+            if(isAdjacent(sim->particles[jj].xCell, sim->particles[jj].yCell, targets)){
                 Vector2 sep = sub(sim->particles[ii].pos, sim->particles[jj].pos);
 
                 double r = mag(sep);
 
                 sep = mul(sep, 1 / (r * r));
 
-                double pot = sim->potential(r);
-                sim->potEnergy += pot;
+                //sim->potEnergy += sim->potential(r, false);
 
-                Vector2 newForce = mul(sep, pot);
+                double force = sim->potential(r, true);
                 
+                Vector2 newForce = mul(sep, force);
+                // if(force > 100){
+                //     newForce = mul(sep,100);
+                // } else {
+                //     newForce = mul(sep,force);
+                // }
+
                 sim->particles[jj].force.x -= newForce.x;
                 sim->particles[jj].force.y -= newForce.y;
         
@@ -209,10 +243,17 @@ void calculateForces(Simulation* sim){
     }
 }
 
-void run(Simulation* sim, int nSteps){
+void printSim(Simulation* sim){
+    for(int ii = 0; ii < sim->nParticles; ii++){
+        printf("Particle: %d at (%lf, %lf) with velocity (%lf,%lf), and force (%lf, %lf)\n",
+        ii, sim->particles[ii].pos.x, sim->particles[ii].pos.y, sim->particles[ii].vel.x, sim->particles[ii].vel.y,
+        sim->particles[ii].force.x, sim->particles[ii].force.y);
+    }
+    printf("Potential Energy: %lf\nTemperature: %lf\nNet Force: (%lf,%lf)\n", sim->potEnergy, sim->temperature, sim->netForce.x, sim->netForce.y);
+}
 
+void run(Simulation* sim, int nSteps, bool equibFlag){
     for(int tt = 0; tt < nSteps; tt++){
-        sim->temperature = 0;
         //First Verlet step
         if(sim->timestep == 0) calculateForces(sim);
         for(int ii = 0; ii < sim->nParticles; ii++){
@@ -261,17 +302,79 @@ void run(Simulation* sim, int nSteps){
         for(int ii = 0; ii < sim->nParticles; ii++){
             Vector2 newV = add(sim->particles[ii].vel, mul(sim->particles[ii].force, 0.5*dt));
             sim->particles[ii].vel = newV;
-            sim->temperature += energy(&sim->particles[ii]);
+        }
+        sim->timestep++;
+
+        calculateNetForce(sim);
+        calculatePotential(sim);
+        calculateTemperature(sim);
+
+        if(mag(sim->netForce) > 0.1){
+            printf("Net Force non-zero at timestep: %d! Force: (%lf, %lf)\n", sim->timestep, sim->netForce.x, sim->netForce.y);
+            printSim(sim);
+            exit(EXIT_FAILURE);
         }
 
-        sim->temperature /= sim->nParticles;
-        sim->temperature *= 1.5;
-        sim->timestep++;
+        if(equibFlag && (sim->timestep % 10 == 0)) rescale(sim);
     }
 }
 
 void freeSimulation(Simulation* sim){
     free(sim->particles);
+}
+
+void calculatePotential(Simulation* sim){
+    sim->potEnergy = 0;
+    constructCellList(sim);
+    for(int ii = 0; ii < sim->nParticles; ii++){
+        int* targets = obtainCellTargets(&sim->particles[ii], sim);
+        for(int jj = 0; jj < sim->nParticles; jj++){
+            if(ii == jj) continue;
+            if(isAdjacent(sim->particles[jj].xCell, sim->particles[jj].yCell, targets)){
+                Vector2 sep = sub(sim->particles[ii].pos, sim->particles[jj].pos);
+
+                double r = mag(sep);
+
+                sep = mul(sep, 1 / (r * r));
+
+                sim->potEnergy += sim->potential(r, false);
+            }
+        }
+    }
+}
+
+void calculateTemperature(Simulation* sim){
+    sim->temperature = 0;
+
+    for(int ii = 0; ii < sim->nParticles; ii++){
+        sim->temperature += energy(&sim->particles[ii]);
+    }
+
+    sim->temperature *= ((double)1/(double)(sim->nParticles * 1.5));
+}
+
+void calculateNetForce(Simulation* sim){
+    sim->netForce = newVector2(0,0);
+
+    for(int ii = 0; ii < sim->nParticles; ii++){
+        sim->netForce = add(sim->netForce, sim->particles[ii].force);
+    }
+}
+
+double getTemp(Simulation* sim){
+    return sim->temperature;
+}
+
+double getPot(Simulation* sim){
+    return sim->potEnergy;
+}
+
+void rescale(Simulation* sim){
+    calculateTemperature(sim);
+    double ktEff = sim->temperature;
+    for(int ii = 0; ii < sim->nParticles; ii++){
+        sim->particles[ii].vel = mul(sim->particles[ii].vel, sim->kT/ktEff);
+    }
 }
 
 // int main(){
