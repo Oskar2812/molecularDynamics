@@ -188,7 +188,7 @@ initialise(sim)
 # Run the simulation
 start = time.time()
 
-runSimulation(sim, 1000)
+runSimulation(sim, 1)
 printSim(sim)
 freeSimulation(sim)
 

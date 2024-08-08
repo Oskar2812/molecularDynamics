@@ -112,7 +112,7 @@ double LJPotential(double r, bool forceFlag){
     double eps = 0.25;
     double sig = 0.5;
 
-    double rc = 0.5;
+    double rc = 0.4;
 
     double r2 = r * r;
     double r4 = r2 * r2;
