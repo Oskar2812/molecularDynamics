@@ -174,25 +174,27 @@ def runSimulation(sim, visStep):
     
     QtWidgets.QApplication.instance().exec_()
 
+if __name__ == '__main__':
+    # Create the simulation
+    potential = ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double, ctypes.c_bool)(LJPotential)
 
-# Create the simulation
-potential = ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double, ctypes.c_bool)(LJPotential)
+    try:
+        sim = newSimulation(100, 100, 128, potential, 1.5)
+    except Exception as e:
+        print(f"Error creating simulation: {e}")
 
-try:
-    sim = newSimulation(100, 100, 128, potential, 1.5)
-except Exception as e:
-    print(f"Error creating simulation: {e}")
+    initialise(sim)
 
-initialise(sim)
+    # Run the simulation
+    start = time.time()
 
-# Run the simulation
-start = time.time()
+    runSimulation(sim, 1)
+    printSim(sim)
+    freeSimulation(sim)
 
-runSimulation(sim, 1)
-printSim(sim)
-freeSimulation(sim)
+    print(f"Simulation complete! Time taken: {time.time()-start}")
 
-print(f"Simulation complete! Time taken: {time.time()-start}")
+
 
 
 
