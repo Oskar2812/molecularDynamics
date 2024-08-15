@@ -5,12 +5,6 @@
 #include "Cell.h"
 #include <stdbool.h>
 
-const double radius = 1;
-const double force = 500;
-const double cutoff = 3.5;
-
-const double dt = 0.01;
-
 typedef struct {
     double boxX, boxY;
     int nParticles, timestep;
@@ -21,7 +15,7 @@ typedef struct {
     int nCellsX, nCellsY, nCells;
     double cellX, cellY;
     double temperature, potEnergy;
-    Vector2 netForce;
+    Vector netForce;
     Cell* cellList;
     bool debugFlag;
 

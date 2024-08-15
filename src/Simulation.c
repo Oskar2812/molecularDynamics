@@ -5,6 +5,12 @@
 
 #include "/home/oskar/projects/molecularDynamics/include/Simulation.h"
 
+const double radius = 1;
+const double force = 500;
+const double cutoff = 3.5;
+
+const double dt = 0.01;
+
 Simulation newSimulation(double boxX, double boxY, int nParticles, double (*potential)(double, bool), double kT){
     Simulation result;
 
@@ -43,7 +49,7 @@ Simulation newSimulation(double boxX, double boxY, int nParticles, double (*pote
 
     result.temperature = 0;
     result.potEnergy = 0;
-    result.netForce = newVector2(0,0);
+    result.netForce = newVector(0,0);
 
     result.debugFlag = false;
 
@@ -85,12 +91,12 @@ void initialise(Simulation* sim){
         double newVx = (((double) rand() / RAND_MAX) * 2) - 1;
         double newVy = (((double) rand() / RAND_MAX) * 2) - 1;
 
-        Vector2 newV = newVector2(newVx, newVy);
+        Vector newV = newVector(newVx, newVy);
         newV = mul(newV, 1/mag(newV));
         newV = mul(newV,generateNormal(sim->kT, sqrt(sim->kT)));
 
             
-        sim->particles[ii] = newParticle(ii, newVector2(newX, newY), newV);
+        sim->particles[ii] = newParticle(ii, newVector(newX, newY), newV);
     }
 
     double meanKTx = 0;
@@ -225,7 +231,7 @@ Cell** obtainCellTargets(Simulation* sim, int arrayCoord){
 void calculateForces(Simulation* sim){
     //sim->potEnergy = 0;
     for(int ii = 0; ii < sim->nParticles; ii++){
-        sim->particles[ii].force = newVector2(0,0);
+        sim->particles[ii].force = newVector(0,0);
     }
     constructCellList(sim);
     for(int ii = 0; ii < sim->nCells; ii++){
@@ -234,14 +240,14 @@ void calculateForces(Simulation* sim){
             for(int cell = 0; cell < 9; cell++){
                 for(int kk = 0; kk < targets[cell]->nParticles; kk++){  
                     if(sim->cellList[ii].particles[jj]->id == targets[cell]->particles[kk]->id){continue;}
-                    Vector2 sep = sub(sim->cellList[ii].particles[jj]->pos, targets[cell]->particles[kk]->pos);
+                    Vector sep = sub(sim->cellList[ii].particles[jj]->pos, targets[cell]->particles[kk]->pos);
                     double r = mag(sep);
 
                     sep = mul(sep, 1 / (r * r));
 
                     double force = sim->potential(r, true);
                     
-                    Vector2 newForce = mul(sep, force);
+                    Vector newForce = mul(sep, force);
 
                     sim->cellList[ii].particles[jj]->force.x += newForce.x;
                     sim->cellList[ii].particles[jj]->force.y += newForce.y;
@@ -269,10 +275,10 @@ void run(Simulation* sim, int nSteps, bool equibFlag){
         //First Verlet step
         if(sim->timestep == 0) calculateForces(sim);
         for(int ii = 0; ii < sim->nParticles; ii++){
-            Vector2 vHalf = add(sim->particles[ii].vel, mul(sim->particles[ii].force, 0.5*dt));
+            Vector vHalf = add(sim->particles[ii].vel, mul(sim->particles[ii].force, 0.5*dt));
             sim->particles[ii].vel = vHalf;
 
-            Vector2 newPos = add(sim->particles[ii].pos, mul(vHalf, dt));
+            Vector newPos = add(sim->particles[ii].pos, mul(vHalf, dt));
             
             if(sim->pbcFlag){
                 if(newPos.x < 0) { 
@@ -311,7 +317,7 @@ void run(Simulation* sim, int nSteps, bool equibFlag){
         //Second Verlet step
         calculateForces(sim);
         for(int ii = 0; ii < sim->nParticles; ii++){
-            Vector2 newV = add(sim->particles[ii].vel, mul(sim->particles[ii].force, 0.5*dt));
+            Vector newV = add(sim->particles[ii].vel, mul(sim->particles[ii].force, 0.5*dt));
             sim->particles[ii].vel = newV;
         }
         sim->timestep++;
@@ -350,7 +356,7 @@ void calculatePotential(Simulation* sim){
             for(int cell = 0; cell < 9; cell++){
                 for(int kk = 0; kk < targets[cell]->nParticles; kk++){
                     if(sim->cellList[ii].particles[jj]->id == targets[cell]->particles[kk]->id){continue;}
-                    Vector2 sep = sub(sim->cellList[ii].particles[jj]->pos, targets[cell]->particles[kk]->pos);
+                    Vector sep = sub(sim->cellList[ii].particles[jj]->pos, targets[cell]->particles[kk]->pos);
 
                     double r = mag(sep);
                     sim->potEnergy += sim->potential(r, false);      
@@ -375,7 +381,7 @@ void calculateTemperature(Simulation* sim){
 }
 
 void calculateNetForce(Simulation* sim){
-    sim->netForce = newVector2(0,0);
+    sim->netForce = newVector(0,0);
 
     for(int ii = 0; ii < sim->nParticles; ii++){
         sim->netForce = add(sim->netForce, sim->particles[ii].force);
