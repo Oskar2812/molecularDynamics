@@ -2,20 +2,24 @@ cmake_minimum_required(VERSION 3.5.0)
 project(MolecularDynamics VERSION 0.1.0 LANGUAGES C)
 
 include_directories(include)
+include_directories(raylib/include)
 
 set(SOURCES
     src/Cell.c 
     src/Particle.c
     src/Simulation.c 
-    src/Vector2.c)
+    src/Vector.c)
 
 set(HEADERS 
     include/Cell.h 
     include/Particle.h
     include/Simulation.h 
-    include/Vector2.h)
+    include/Vector.h)
+
+link_directories(raylib-5.0_linux_amd64/lib)
 
 add_executable(MolecularDynamics src/main.c ${SOURCES} ${HEADERS})
 
-target_link_libraries(MolecularDynamics m)
+target_link_libraries(MolecularDynamics m raylib)
+
 

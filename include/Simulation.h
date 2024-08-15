@@ -15,7 +15,7 @@ typedef struct {
     int nCellsX, nCellsY, nCells;
     double cellX, cellY;
     double temperature, potEnergy;
-    Vector2 netForce;
+    Vector netForce;
     Cell* cellList;
     bool debugFlag;
 
