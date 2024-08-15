@@ -1,1 +1,0 @@
-/usr/bin/cc -g CMakeFiles/MolecularDynamics.dir/src/main.c.o CMakeFiles/MolecularDynamics.dir/src/Cell.c.o CMakeFiles/MolecularDynamics.dir/src/Particle.c.o CMakeFiles/MolecularDynamics.dir/src/Simulation.c.o CMakeFiles/MolecularDynamics.dir/src/Vector2.c.o -o MolecularDynamics  -lm 

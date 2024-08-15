@@ -1,3 +1,0 @@
-/home/oskar/projects/molecularDynamics/build/CMakeFiles/MolecularDynamics.dir
-/home/oskar/projects/molecularDynamics/build/CMakeFiles/edit_cache.dir
-/home/oskar/projects/molecularDynamics/build/CMakeFiles/rebuild_cache.dir
