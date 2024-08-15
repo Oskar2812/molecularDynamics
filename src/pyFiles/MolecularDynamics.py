@@ -17,6 +17,11 @@ class Particle(ctypes.Structure):
                 ("pos", Vector2),
                 ("vel", Vector2),
                 ("force", Vector2)]
+    
+class Cell(ctypes.Structure):
+    _fields_ = [("nParticles", ctypes.c_int),
+                ("count", ctypes.c_int),
+                ("particles", ctypes.POINTER(ctypes.POINTER(Particle)))]
 
 class Simulation(ctypes.Structure):
     _fields_ = [("boxX", ctypes.c_double),
@@ -26,13 +31,16 @@ class Simulation(ctypes.Structure):
                 ("particles", ctypes.POINTER(Particle)),
                 ("potential", ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double, ctypes.c_bool)),
                 ("kT", ctypes.c_double),
+                ("pbcFlag", ctypes.c_int),   
                 ("nCellsX", ctypes.c_int),
                 ("nCellsY", ctypes.c_int),
+                ("nCells", ctypes.c_int),    
                 ("cellX", ctypes.c_double),
                 ("cellY", ctypes.c_double),
                 ("temperature", ctypes.c_double),
                 ("potEnergy", ctypes.c_double),
-                ("netForce", Vector2)]
+                ("netForce", Vector2),
+                ("cellList", ctypes.POINTER(Cell))]
 
 newVector2 = MD.newVector2
 newVector2.argtypes = [ctypes.c_double,ctypes.c_double]
@@ -98,6 +106,10 @@ getTemp.restype = ctypes.c_double
 getPot = MD.getPot
 getPot.argtypes = [ctypes.POINTER(Simulation)]
 getPot.restype = ctypes.c_double
+
+newCell = MD.newCell
+newCell.argtypes = [ctypes.c_int]
+newCell.restype = Cell
 
 def particlePosToArray(sim):
     result = []
@@ -178,10 +190,7 @@ if __name__ == '__main__':
     # Create the simulation
     potential = ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double, ctypes.c_bool)(LJPotential)
 
-    try:
-        sim = newSimulation(100, 100, 128, potential, 1.5)
-    except Exception as e:
-        print(f"Error creating simulation: {e}")
+    sim = newSimulation(200,200, 256, potential, 1.5)
 
     initialise(sim)
 
@@ -189,7 +198,7 @@ if __name__ == '__main__':
     start = time.time()
 
     runSimulation(sim, 1)
-    printSim(sim)
+    #run(sim, 1, True)
     freeSimulation(sim)
 
     print(f"Simulation complete! Time taken: {time.time()-start}")

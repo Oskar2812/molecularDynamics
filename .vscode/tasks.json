@@ -3,7 +3,7 @@
         {
             "type": "cppbuild",
             "label": "C/C++: gcc build active file",
-            "command": "/usr/bin/gcc",
+            "command": "mpicc",
             "args": [
                 "-fdiagnostics-color=always",
                 "-shared",
@@ -13,8 +13,7 @@
                 "/home/oskar/projects/molecularDynamics/src/cFiles/Vector2.c",
                 "/home/oskar/projects/molecularDynamics/src/cFiles/Particle.c",
                 "/home/oskar/projects/molecularDynamics/src/cFiles/Simulation.c",
-                "-Wall",
-                "-Werror"
+                "/home/oskar/projects/molecularDynamics/src/cFiles/Cell.c",
             ],
             "options": {
                 "cwd": "${fileDirname}"

@@ -15,4 +15,6 @@ Particle newParticle(int id, Vector2 pos, Vector2 vel);
 
 double energy(Particle* pp);
 
+void printParticle(Particle pp);
+
 #endif

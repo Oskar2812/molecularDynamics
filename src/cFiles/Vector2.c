@@ -7,6 +7,10 @@ Vector2 newVector2(double x, double y){
     return v;
 }
 
+void printVector(Vector2 vec){
+    printf("(%lf, %lf)\n", vec.x, vec.y);
+}
+
 Vector2 add(Vector2 a, Vector2 b){
     Vector2 v = {a.x + b.x, a.y + b.y};
     return v;

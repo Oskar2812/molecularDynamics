@@ -8,6 +8,8 @@ typedef struct{
 
 Vector2 newVector2(double x, double y);
 
+void printVector(Vector2 vec);
+
 Vector2 add(Vector2 a, Vector2 b);
 
 Vector2 sub(Vector2 a, Vector2 b);

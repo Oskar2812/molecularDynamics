@@ -2,6 +2,7 @@
 #define SIMUATION_H
 
 #include "Particle.h"
+#include "Cell.h"
 #include <stdbool.h>
 
 const double radius = 1;
@@ -17,10 +18,12 @@ typedef struct {
     double (*potential)(double, bool);
     double kT;
     bool pbcFlag;
-    int nCellsX, nCellsY;
+    int nCellsX, nCellsY, nCells;
     double cellX, cellY;
     double temperature, potEnergy;
     Vector2 netForce;
+    Cell* cellList;
+    bool debugFlag;
 
 } Simulation;
 
@@ -37,6 +40,8 @@ void calculateForces(Simulation* sim);
 void run(Simulation* sim, int nSteps, bool equibFlag);
 
 void freeSimulation(Simulation* sim);
+
+void freeCellList(Simulation* sim);
 
 void constructCellList(Simulation* sim);
 
