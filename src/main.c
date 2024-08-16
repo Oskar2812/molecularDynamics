@@ -1,20 +1,12 @@
-#include "../include/Simulation.h"
-#include "../raylib-5.0_linux_amd64/include/raylib.h"
+#include "../include/Game.h"
 #include <stdio.h>
 
 int main(){
 
-    InitWindow(800, 600, "Raylib Example");
-
-    while (!WindowShouldClose())
-    {
-        BeginDrawing();
-        ClearBackground(RAYWHITE);
-        DrawText("Hello, Raylib!", 190, 200, 20, LIGHTGRAY);
-        EndDrawing();
-    }
-
-    CloseWindow();
+    Simulation sim = newSimulation(100, 100, 128, LJPotential, 3);
+    initialise(&sim);
+    
+    startGame(&sim, 800, 600);
 
     return 0;
 }

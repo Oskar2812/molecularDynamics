@@ -8,13 +8,15 @@ set(SOURCES
     src/Cell.c 
     src/Particle.c
     src/Simulation.c 
-    src/Vector.c)
+    src/Vector.c
+    src/Game.c)
 
 set(HEADERS 
     include/Cell.h 
     include/Particle.h
     include/Simulation.h 
-    include/Vector.h)
+    include/Vector.h
+    include/Game.h)
 
 link_directories(raylib-5.0_linux_amd64/lib)
 
