@@ -11,7 +11,7 @@ typedef struct {
     Particle* particles;
     double (*potential)(double, bool);
     double kT;
-    bool pbcFlag;
+    bool pbcFlag, gravFlag;
     int nCellsX, nCellsY, nCells;
     double cellX, cellY;
     double temperature, potEnergy;
@@ -21,7 +21,7 @@ typedef struct {
     double* potHist;
 } Simulation;
 
-Simulation newSimulation(double boxX, double boxY, int nParticles, double (*potential)(double, bool), double kT, bool pbcFlag);
+Simulation newSimulation(double boxX, double boxY, int nParticles, double (*potential)(double, bool), double kT);
 
 void initialise(Simulation* sim);
 
@@ -31,7 +31,7 @@ double LJPotential(double r, bool forceFlag);
 
 void calculateForces(Simulation* sim);
 
-void run(Simulation* sim, int nSteps, bool equibFlag, bool gravFlag);
+void run(Simulation* sim, int nSteps, bool equibFlag);
 
 void freeSimulation(Simulation* sim);
 
@@ -41,7 +41,7 @@ void constructCellList(Simulation* sim);
 
 void printSim(Simulation* sim);
 
-void calculatePotential(Simulation* sim, bool gravFlag);
+void calculatePotential(Simulation* sim);
 
 void calculateTemperature(Simulation* sim);
 

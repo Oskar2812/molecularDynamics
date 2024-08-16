@@ -57,6 +57,31 @@ void drawGraph(Simulation* sim, double* datapoints, Vector pos, Vector size, cha
     }  
 }
 
+void gravEffect(Simulation* sim){
+    sim->gravFlag = !sim->gravFlag;
+}
+
+void pbcEffect(Simulation* sim){
+    sim->pbcFlag = !sim->pbcFlag;
+}
+
+void drawButton(Button* button){
+    DrawRectangleRec(button->bounds, button->color);
+
+    int textX = button->bounds.x + 10;
+    int textY = button->bounds.y + (button->bounds.height / 2) - 5;
+
+    DrawText(button->text, textX, textY, 15, RAYWHITE);
+}
+
+bool IsButtonClicked(Button *button) {
+    // Check if the button is clicked
+    if (CheckCollisionPointRec(GetMousePosition(), button->bounds) && IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
+        return true;
+    }
+    return false;
+}
+
 void startGame(Simulation* sim, int width, int height){
     SetTraceLogLevel(LOG_ERROR);
     InitWindow(width + 0.5*width, height, "Molecular Dynamics Simulation");
@@ -65,8 +90,23 @@ void startGame(Simulation* sim, int width, int height){
 
     double radius = 0.2 * width / sim->boxX;
 
+    Button gravButton = {
+        .bounds = {width - 90, 20, 70, 30},
+        .text = "Gravity",
+        .color = (Color){200,200,200,128},
+        .effect = gravEffect
+    };
+
+    Button pbcButton = {
+        .bounds = {width - 180, 20, 70, 30},
+        .text = "PBC",
+        .color = (Color){200,200,200,128},
+        .effect = pbcEffect,
+    };
+    
+
     while(!WindowShouldClose()){
-        run(sim, 1, true, true);
+        run(sim, 1, true);
         BeginDrawing();
         ClearBackground(BLACK);
         DrawLine(width,0,width,height,RAYWHITE);
@@ -75,13 +115,16 @@ void startGame(Simulation* sim, int width, int height){
         DrawText(text,5,5,20, RAYWHITE);
         drawGraph(sim, sim->tempHist, newVector(width, 0), newVector(0.5*width, 0.5*height), "Temperature");
         drawGraph(sim, sim->potHist, newVector(width, 0.5*height), newVector(0.5 * width, 0.5*height), "Potentail Energy");
+        drawButton(&gravButton);
+        drawButton(&pbcButton);
         for(int ii = 0; ii < sim->nParticles; ii++){
             Vector pos = simCoordsToRayCoords(sim->particles[ii].pos, width, height, sim);
             DrawCircle(pos.x,pos.y,radius, LIGHTGRAY);
         }
+        if(IsButtonClicked(&gravButton)) gravButton.effect(sim);
+        if(IsButtonClicked(&pbcButton)) pbcButton.effect(sim);
         EndDrawing();
     }
-
     endGame(sim);
 }
 

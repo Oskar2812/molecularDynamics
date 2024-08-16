@@ -12,7 +12,7 @@ const double cutoff = 3.5;
 
 const double dt = 0.0075;
 
-Simulation newSimulation(double boxX, double boxY, int nParticles, double (*potential)(double, bool), double kT, bool pbcFlag){
+Simulation newSimulation(double boxX, double boxY, int nParticles, double (*potential)(double, bool), double kT){
     Simulation result;
 
     result.boxX = boxX;
@@ -32,7 +32,8 @@ Simulation newSimulation(double boxX, double boxY, int nParticles, double (*pote
 
     result.kT = kT;
 
-    result.pbcFlag = pbcFlag;
+    result.pbcFlag = true;
+    result.gravFlag = false;
 
     result.nCellsX = (int) (boxX / cutoff);
     result.nCellsY = (int) (boxY / cutoff);
@@ -125,7 +126,7 @@ double hardDiskPotential(double r, bool forceFlag){
 
 double LJPotential(double r, bool forceFlag){
 
-    double eps = 1;
+    double eps = 0.25;
     double sig = 0.5;
 
     double rc = 0.4;
@@ -354,12 +355,12 @@ void printSim(Simulation* sim){
     printf("Potential Energy: %lf\nTemperature: %lf\nNet Force: (%lf,%lf)\n", sim->potEnergy, sim->temperature, sim->netForce.x, sim->netForce.y);
 }
 
-void run(Simulation* sim, int nSteps, bool equibFlag, bool gravFlag){
+void run(Simulation* sim, int nSteps, bool equibFlag){
     for(int tt = 0; tt < nSteps; tt++){
         //First Verlet step
         if(sim->timestep == 0) {
             calculateForces(sim);
-            if(gravFlag) addGravity(sim);
+            if(sim->gravFlag) addGravity(sim);
         }
         for(int ii = 0; ii < sim->nParticles; ii++){
             Vector vHalf = add(sim->particles[ii].vel, mul(sim->particles[ii].force, 0.5*dt));
@@ -403,13 +404,13 @@ void run(Simulation* sim, int nSteps, bool equibFlag, bool gravFlag){
         }
         //Second Verlet step
         calculateForces(sim);
-        if(gravFlag) addGravity(sim);
+        if(sim->gravFlag) addGravity(sim);
         for(int ii = 0; ii < sim->nParticles; ii++){
             Vector newV = add(sim->particles[ii].vel, mul(sim->particles[ii].force, 0.5*dt));
             sim->particles[ii].vel = newV;
         }
         calculateNetForce(sim);
-        calculatePotential(sim, gravFlag);
+        calculatePotential(sim);
         calculateTemperature(sim);
 
         if(sim->timestep % 500 == 0){
@@ -424,7 +425,7 @@ void run(Simulation* sim, int nSteps, bool equibFlag, bool gravFlag){
         sim->potHist[sim->timestep] = sim->potEnergy;
         sim->tempHist[sim->timestep] = sim->temperature;
 
-        if(mag(sim->netForce) > 0.1 && !gravFlag){
+        if(mag(sim->netForce) > 0.1 && !sim->gravFlag){
             printf("Net Force non-zero at timestep: %d! Force: (%lf, %lf)\n", sim->timestep, sim->netForce.x, sim->netForce.y);
             printSim(sim);
             exit(EXIT_FAILURE);
@@ -448,7 +449,7 @@ void freeCellList(Simulation* sim){
     }
 }
 
-void calculatePotential(Simulation* sim, bool gravFlag){
+void calculatePotential(Simulation* sim){
     sim->potEnergy = 0;
     constructCellList(sim);
     for(int ii = 0; ii < sim->nCells; ii++){
@@ -460,7 +461,7 @@ void calculatePotential(Simulation* sim, bool gravFlag){
             targets = obtainCellTargetsBox(sim, ii, &nTargets);
         }
         for(int jj = 0; jj < sim->cellList[ii].nParticles; jj++){
-            if(gravFlag){
+            if(sim->gravFlag){
                         sim->potEnergy += G * sim->cellList[ii].particles[jj]->pos.y;
                     }
             for(int cell = 0; cell < nTargets; cell++){
