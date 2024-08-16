@@ -7,7 +7,7 @@
 
 const double radius = 1;
 const double force = 500;
-const double G = 1;
+const double G = 3;
 const double cutoff = 3.5;
 
 const double dt = 0.0075;
@@ -125,7 +125,7 @@ double hardDiskPotential(double r, bool forceFlag){
 
 double LJPotential(double r, bool forceFlag){
 
-    double eps = 0.25;
+    double eps = 1;
     double sig = 0.5;
 
     double rc = 0.4;
