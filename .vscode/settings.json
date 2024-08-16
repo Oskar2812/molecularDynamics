@@ -1,7 +1,0 @@
-{
-    "C_Cpp.default.compilerPath": "/usr/bin/gcc",
-    "files.associations": {
-        "game.h": "c",
-        "simulation.h": "c"
-    }
-}

@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "/home/oskar/projects/molecularDynamics/include/Particle.h"
+#include "../include/Particle.h"
 
 Particle newParticle(int id, Vector pos, Vector vel){
     Particle p;

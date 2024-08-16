@@ -1,4 +1,4 @@
-#include "/home/oskar/projects/molecularDynamics/include/Cell.h"
+#include "../include/Cell.h"
 
 #include <stdlib.h>
 #include <stdio.h>

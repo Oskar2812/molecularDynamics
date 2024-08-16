@@ -3,7 +3,7 @@
 #include <time.h>
 #include <math.h>
 
-#include "/home/oskar/projects/molecularDynamics/include/Simulation.h"
+#include "../include/Simulation.h"
 
 const double radius = 1;
 const double force = 500;

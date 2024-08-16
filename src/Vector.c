@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <math.h>
-#include "/home/oskar/projects/molecularDynamics/include/Vector.h"
+#include "../include/Vector.h"
 
 Vector newVector(double x, double y){
     Vector v = {x,y};
