@@ -11,7 +11,7 @@ typedef struct {
     Particle* particles;
     double (*potential)(double, bool);
     double kT;
-    bool pbcFlag;
+    bool pbcFlag, gravFlag;
     int nCellsX, nCellsY, nCells;
     double cellX, cellY;
     double temperature, potEnergy;

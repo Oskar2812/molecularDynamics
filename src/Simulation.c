@@ -7,6 +7,7 @@
 
 const double radius = 1;
 const double force = 500;
+const double G = 3;
 const double cutoff = 3.5;
 
 const double dt = 0.0075;
@@ -32,6 +33,7 @@ Simulation newSimulation(double boxX, double boxY, int nParticles, double (*pote
     result.kT = kT;
 
     result.pbcFlag = true;
+    result.gravFlag = false;
 
     result.nCellsX = (int) (boxX / cutoff);
     result.nCellsY = (int) (boxY / cutoff);
@@ -194,9 +196,9 @@ void constructCellList(Simulation* sim){
     }
 
 
+
     for(int ii = 0; ii < sim->nCells; ii++){
         sim->cellList[ii].nParticles = cellCount[ii];
-        fflush(stdout);
         sim->cellList[ii].particles = (Particle**)malloc(sim->cellList[ii].nParticles * sizeof(Particle*));
         if(sim->cellList[ii].particles == NULL){
             fprintf(stderr, "Failed to allocate memory to cell list\n");
@@ -209,7 +211,7 @@ void constructCellList(Simulation* sim){
     }
 }
 
-Cell** obtainCellTargets(Simulation* sim, int arrayCoord){
+Cell** obtainCellTargetsPBC(Simulation* sim, int arrayCoord){
     int xCell, yCell;
     cellCoords(sim, arrayCoord, &xCell, &yCell);
 
@@ -229,16 +231,92 @@ Cell** obtainCellTargets(Simulation* sim, int arrayCoord){
     return result;
 }
 
+bool isOutside(Simulation* sim, int xCell, int yCell){
+    bool result = false;
+    if(xCell < 0 || yCell < 0){result = true;}
+    if(xCell == sim->nCellsX || yCell == sim->nCellsY){ result = true;}
+
+    return result;
+}
+
+Cell** obtainCellTargetsBox(Simulation* sim, int arrayCoord, int* nTargets){
+    int xCell, yCell;
+    cellCoords(sim, arrayCoord, &xCell, &yCell);
+    *nTargets = 9;
+    if(xCell == 0 || xCell == sim->nCellsX - 1){
+        *nTargets = 6;
+        if(yCell == 0 || yCell == sim->nCellsY - 1){
+            *nTargets = 4;
+        }
+    }
+    if(yCell == 0 || yCell == sim->nCellsY - 1){
+        *nTargets = 6;
+        if(xCell == 0 || xCell == sim->nCellsX - 1){
+            *nTargets = 4;
+        }
+    }
+
+    Cell** result = (Cell**)malloc(*nTargets * sizeof(Cell));
+    int count = 0;
+
+    if(!isOutside(sim, xCell - 1, yCell - 1)){
+        result[count] = &sim->cellList[arrayCoords(sim, xCell - 1, yCell - 1)];
+        count++;
+    }
+    if(!isOutside(sim, xCell, yCell - 1)){
+        result[count] = &sim->cellList[arrayCoords(sim, xCell, yCell - 1)];
+        count++;
+    }
+    if(!isOutside(sim, xCell + 1, yCell - 1)){
+        result[count] = &sim->cellList[arrayCoords(sim, xCell + 1, yCell - 1)];
+        count++;
+    }
+    if(!isOutside(sim, xCell - 1, yCell)){
+        result[count] = &sim->cellList[arrayCoords(sim, xCell - 1, yCell)];
+        count++;
+    }
+    if(!isOutside(sim, xCell, yCell)){
+        result[count] = &sim->cellList[arrayCoords(sim, xCell, yCell)];
+        count++;
+    }
+    if(!isOutside(sim, xCell + 1, yCell)){
+        result[count] = &sim->cellList[arrayCoords(sim, xCell +1, yCell)];
+        count++;
+    }
+    if(!isOutside(sim, xCell - 1, yCell + 1)){
+        result[count] = &sim->cellList[arrayCoords(sim, xCell - 1, yCell + 1)];
+        count++;
+    }
+    if(!isOutside(sim, xCell, yCell + 1)){
+        result[count] = &sim->cellList[arrayCoords(sim, xCell, yCell + 1)];
+        count++;
+    }
+    if(!isOutside(sim, xCell + 1, yCell + 1)){
+        result[count] = &sim->cellList[arrayCoords(sim, xCell + 1, yCell + 1)];
+        count++;
+    }
+
+    return result;
+}
+
 void calculateForces(Simulation* sim){
     //sim->potEnergy = 0;
     for(int ii = 0; ii < sim->nParticles; ii++){
         sim->particles[ii].force = newVector(0,0);
     }
     constructCellList(sim);
+    
     for(int ii = 0; ii < sim->nCells; ii++){
-        Cell** targets = obtainCellTargets(sim, ii);
+        int nTargets = 9;
+        Cell** targets;
+        if(sim->pbcFlag){
+            targets = obtainCellTargetsPBC(sim, ii);
+        } else {
+            targets = obtainCellTargetsBox(sim, ii, &nTargets);
+        }
+        
         for(int jj = 0; jj < sim->cellList[ii].nParticles; jj++){
-            for(int cell = 0; cell < 9; cell++){
+            for(int cell = 0; cell < nTargets; cell++){
                 for(int kk = 0; kk < targets[cell]->nParticles; kk++){  
                     if(sim->cellList[ii].particles[jj]->id == targets[cell]->particles[kk]->id){continue;}
                     Vector sep = sub(sim->cellList[ii].particles[jj]->pos, targets[cell]->particles[kk]->pos);
@@ -261,6 +339,13 @@ void calculateForces(Simulation* sim){
     //printSim(sim);
 }
 
+void addGravity(Simulation* sim){
+    for(int ii = 0; ii < sim->nParticles; ii++){
+        Vector gravForce = newVector(0, -G);
+        sim->particles[ii].force = add(sim->particles[ii].force, gravForce);
+    }
+}
+
 void printSim(Simulation* sim){
     for(int ii = 0; ii < sim->nParticles; ii++){
         printf("Particle: %d at (%lf, %lf) with velocity (%lf,%lf), and force (%lf, %lf)\n",
@@ -273,7 +358,10 @@ void printSim(Simulation* sim){
 void run(Simulation* sim, int nSteps, bool equibFlag){
     for(int tt = 0; tt < nSteps; tt++){
         //First Verlet step
-        if(sim->timestep == 0) calculateForces(sim);
+        if(sim->timestep == 0) {
+            calculateForces(sim);
+            if(sim->gravFlag) addGravity(sim);
+        }
         for(int ii = 0; ii < sim->nParticles; ii++){
             Vector vHalf = add(sim->particles[ii].vel, mul(sim->particles[ii].force, 0.5*dt));
             sim->particles[ii].vel = vHalf;
@@ -299,7 +387,7 @@ void run(Simulation* sim, int nSteps, bool equibFlag){
                 sim->particles[ii].vel.x *= -1;
                 }
                 if(newPos.x > sim->boxX) {
-                    newPos.x = sim->boxX;
+                    newPos.x = sim->boxX - 0.01;
                     sim->particles[ii].vel.x *= -1;
                 }
                 if(newPos.y < 0) {
@@ -307,7 +395,7 @@ void run(Simulation* sim, int nSteps, bool equibFlag){
                     sim->particles[ii].vel.y *= -1;
                 }
                 if(newPos.y > sim->boxY) {
-                    newPos.y = sim->boxY;
+                    newPos.y = sim->boxY - 0.01;
                     sim->particles[ii].vel.y *= -1;
                 }
             }
@@ -316,32 +404,36 @@ void run(Simulation* sim, int nSteps, bool equibFlag){
         }
         //Second Verlet step
         calculateForces(sim);
+        if(sim->gravFlag) addGravity(sim);
         for(int ii = 0; ii < sim->nParticles; ii++){
             Vector newV = add(sim->particles[ii].vel, mul(sim->particles[ii].force, 0.5*dt));
             sim->particles[ii].vel = newV;
         }
-        sim->timestep++;
-
-        if(sim->timestep % 500 == 0){
-            sim->potHist = (double*)realloc(sim->potHist, (sim->timestep + 500) * sizeof(double));
-            sim->tempHist = (double*)realloc(sim->tempHist, (sim->timestep + 500)*sizeof(double));
-        }
-
         calculateNetForce(sim);
         calculatePotential(sim);
         calculateTemperature(sim);
 
+        if(sim->timestep % 500 == 0){
+            sim->potHist = (double*)realloc(sim->potHist, (sim->timestep + 500) * sizeof(double));
+            sim->tempHist = (double*)realloc(sim->tempHist, (sim->timestep + 500)*sizeof(double));
+            if(sim->potHist == NULL || sim->tempHist == NULL){
+                printf("Error: failed to realocate memory for tempHist or potHist\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+
         sim->potHist[sim->timestep] = sim->potEnergy;
         sim->tempHist[sim->timestep] = sim->temperature;
 
-        if(mag(sim->netForce) > 0.1){
+        if(mag(sim->netForce) > 0.1 && !sim->gravFlag){
             printf("Net Force non-zero at timestep: %d! Force: (%lf, %lf)\n", sim->timestep, sim->netForce.x, sim->netForce.y);
             printSim(sim);
             exit(EXIT_FAILURE);
         }
 
         if(equibFlag && (sim->timestep % 10 == 0)) rescale(sim);
-    }
+        sim->timestep++;
+    }    
 }
 
 void freeSimulation(Simulation* sim){
@@ -361,16 +453,24 @@ void calculatePotential(Simulation* sim){
     sim->potEnergy = 0;
     constructCellList(sim);
     for(int ii = 0; ii < sim->nCells; ii++){
-        Cell** targets = obtainCellTargets(sim, ii);
+        int nTargets = 9;
+        Cell** targets;
+        if(sim->pbcFlag){
+            targets = obtainCellTargetsPBC(sim, ii);
+        } else {
+            targets = obtainCellTargetsBox(sim, ii, &nTargets);
+        }
         for(int jj = 0; jj < sim->cellList[ii].nParticles; jj++){
-            for(int cell = 0; cell < 9; cell++){
+            if(sim->gravFlag){
+                        sim->potEnergy += G * sim->cellList[ii].particles[jj]->pos.y;
+                    }
+            for(int cell = 0; cell < nTargets; cell++){
                 for(int kk = 0; kk < targets[cell]->nParticles; kk++){
                     if(sim->cellList[ii].particles[jj]->id == targets[cell]->particles[kk]->id){continue;}
                     Vector sep = sub(sim->cellList[ii].particles[jj]->pos, targets[cell]->particles[kk]->pos);
 
                     double r = mag(sep);
-                    sim->potEnergy += sim->potential(r, false);      
-                    
+                    sim->potEnergy += sim->potential(r, false);                    
                 }  
             }
             
@@ -413,17 +513,3 @@ void rescale(Simulation* sim){
         sim->particles[ii].vel = mul(sim->particles[ii].vel, sim->kT/ktEff);
     }
 }
-
-// int main(){
-
-//     Simulation sim = newSimulation(100,100, 128, LJPotential, 5);
-//     initialise(&sim);
-
-//     run(&sim,1000);
-
-//     printf("%lf\n", sim.particles[0].pos.x);
-
-//     freeSimulation(&sim);
-
-//     return EXIT_SUCCESS;
-// }
