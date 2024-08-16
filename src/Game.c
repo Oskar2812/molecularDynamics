@@ -31,7 +31,7 @@ void drawGraph(Simulation* sim, double* datapoints, Vector pos, Vector size, cha
     double range = abs(max - min);
 
     for(int ii = 0; ii < 10; ii++){
-        char axisMarking[10];
+        char axisMarking[100];
         sprintf(axisMarking, "%.2lf", min + ii * range / 9);
         DrawLine(pos.x + offset/1.5, pos.y + size.y - offset - ii * (size.y - 2 * offset) / 9,
         pos.x + offset, pos.y + size.y - offset - ii * (size.y - 2 * offset) / 9, RAYWHITE);
@@ -54,8 +54,7 @@ void drawGraph(Simulation* sim, double* datapoints, Vector pos, Vector size, cha
         double x1 = pos.x + offset + (double)(ii - 1) / (double)sim->timestep * (size.x - 2*offset);
         double x2 = pos.x + offset + (double)ii / (double)sim->timestep * (size.x - 2*offset);
         DrawLine(x1, y1, x2, y2 , RAYWHITE);
-    }
-         
+    }  
 }
 
 void startGame(Simulation* sim, int width, int height){
@@ -67,7 +66,7 @@ void startGame(Simulation* sim, int width, int height){
     double radius = 0.2 * width / sim->boxX;
 
     while(!WindowShouldClose()){
-        run(sim, 1, true);
+        run(sim, 1, true, true);
         BeginDrawing();
         ClearBackground(BLACK);
         DrawLine(width,0,width,height,RAYWHITE);

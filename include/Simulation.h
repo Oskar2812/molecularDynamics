@@ -31,7 +31,7 @@ double LJPotential(double r, bool forceFlag);
 
 void calculateForces(Simulation* sim);
 
-void run(Simulation* sim, int nSteps, bool equibFlag);
+void run(Simulation* sim, int nSteps, bool equibFlag, bool gravFlag);
 
 void freeSimulation(Simulation* sim);
 
@@ -41,7 +41,7 @@ void constructCellList(Simulation* sim);
 
 void printSim(Simulation* sim);
 
-void calculatePotential(Simulation* sim);
+void calculatePotential(Simulation* sim, bool gravFlag);
 
 void calculateTemperature(Simulation* sim);
 

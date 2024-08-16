@@ -7,6 +7,7 @@
 
 const double radius = 1;
 const double force = 500;
+const double G = 1;
 const double cutoff = 3.5;
 
 const double dt = 0.0075;
@@ -337,6 +338,13 @@ void calculateForces(Simulation* sim){
     //printSim(sim);
 }
 
+void addGravity(Simulation* sim){
+    for(int ii = 0; ii < sim->nParticles; ii++){
+        Vector gravForce = newVector(0, -G);
+        sim->particles[ii].force = add(sim->particles[ii].force, gravForce);
+    }
+}
+
 void printSim(Simulation* sim){
     for(int ii = 0; ii < sim->nParticles; ii++){
         printf("Particle: %d at (%lf, %lf) with velocity (%lf,%lf), and force (%lf, %lf)\n",
@@ -346,10 +354,13 @@ void printSim(Simulation* sim){
     printf("Potential Energy: %lf\nTemperature: %lf\nNet Force: (%lf,%lf)\n", sim->potEnergy, sim->temperature, sim->netForce.x, sim->netForce.y);
 }
 
-void run(Simulation* sim, int nSteps, bool equibFlag){
+void run(Simulation* sim, int nSteps, bool equibFlag, bool gravFlag){
     for(int tt = 0; tt < nSteps; tt++){
         //First Verlet step
-        if(sim->timestep == 0) calculateForces(sim);
+        if(sim->timestep == 0) {
+            calculateForces(sim);
+            if(gravFlag) addGravity(sim);
+        }
         for(int ii = 0; ii < sim->nParticles; ii++){
             Vector vHalf = add(sim->particles[ii].vel, mul(sim->particles[ii].force, 0.5*dt));
             sim->particles[ii].vel = vHalf;
@@ -392,32 +403,36 @@ void run(Simulation* sim, int nSteps, bool equibFlag){
         }
         //Second Verlet step
         calculateForces(sim);
-    }
+        if(gravFlag) addGravity(sim);
         for(int ii = 0; ii < sim->nParticles; ii++){
             Vector newV = add(sim->particles[ii].vel, mul(sim->particles[ii].force, 0.5*dt));
             sim->particles[ii].vel = newV;
         }
         calculateNetForce(sim);
-        calculatePotential(sim);
+        calculatePotential(sim, gravFlag);
         calculateTemperature(sim);
-        sim->timestep++;
 
         if(sim->timestep % 500 == 0){
             sim->potHist = (double*)realloc(sim->potHist, (sim->timestep + 500) * sizeof(double));
             sim->tempHist = (double*)realloc(sim->tempHist, (sim->timestep + 500)*sizeof(double));
+            if(sim->potHist == NULL || sim->tempHist == NULL){
+                printf("Error: failed to realocate memory for tempHist or potHist\n");
+                exit(EXIT_FAILURE);
+            }
         }
 
         sim->potHist[sim->timestep] = sim->potEnergy;
         sim->tempHist[sim->timestep] = sim->temperature;
 
-        if(mag(sim->netForce) > 0.1){
+        if(mag(sim->netForce) > 0.1 && !gravFlag){
             printf("Net Force non-zero at timestep: %d! Force: (%lf, %lf)\n", sim->timestep, sim->netForce.x, sim->netForce.y);
             printSim(sim);
             exit(EXIT_FAILURE);
         }
 
         if(equibFlag && (sim->timestep % 10 == 0)) rescale(sim);
-    
+        sim->timestep++;
+    }    
 }
 
 void freeSimulation(Simulation* sim){
@@ -433,7 +448,7 @@ void freeCellList(Simulation* sim){
     }
 }
 
-void calculatePotential(Simulation* sim){
+void calculatePotential(Simulation* sim, bool gravFlag){
     sim->potEnergy = 0;
     constructCellList(sim);
     for(int ii = 0; ii < sim->nCells; ii++){
@@ -445,14 +460,16 @@ void calculatePotential(Simulation* sim){
             targets = obtainCellTargetsBox(sim, ii, &nTargets);
         }
         for(int jj = 0; jj < sim->cellList[ii].nParticles; jj++){
+            if(gravFlag){
+                        sim->potEnergy += G * sim->cellList[ii].particles[jj]->pos.y;
+                    }
             for(int cell = 0; cell < nTargets; cell++){
                 for(int kk = 0; kk < targets[cell]->nParticles; kk++){
                     if(sim->cellList[ii].particles[jj]->id == targets[cell]->particles[kk]->id){continue;}
                     Vector sep = sub(sim->cellList[ii].particles[jj]->pos, targets[cell]->particles[kk]->pos);
 
                     double r = mag(sep);
-                    sim->potEnergy += sim->potential(r, false);      
-                    
+                    sim->potEnergy += sim->potential(r, false);                    
                 }  
             }
             
@@ -495,17 +512,3 @@ void rescale(Simulation* sim){
         sim->particles[ii].vel = mul(sim->particles[ii].vel, sim->kT/ktEff);
     }
 }
-
-// int main(){
-
-//     Simulation sim = newSimulation(100,100, 128, LJPotential, 5);
-//     initialise(&sim);
-
-//     run(&sim,1000);
-
-//     printf("%lf\n", sim.particles[0].pos.x);
-
-//     freeSimulation(&sim);
-
-//     return EXIT_SUCCESS;
-// }
