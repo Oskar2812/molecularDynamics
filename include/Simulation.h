@@ -17,8 +17,8 @@ typedef struct {
     double temperature, potEnergy;
     Vector netForce;
     Cell* cellList;
-    bool debugFlag;
-
+    double* tempHist; 
+    double* potHist;
 } Simulation;
 
 Simulation newSimulation(double boxX, double boxY, int nParticles, double (*potential)(double, bool), double kT);

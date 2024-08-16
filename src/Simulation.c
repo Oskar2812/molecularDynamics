@@ -9,7 +9,7 @@ const double radius = 1;
 const double force = 500;
 const double cutoff = 3.5;
 
-const double dt = 0.01;
+const double dt = 0.0075;
 
 Simulation newSimulation(double boxX, double boxY, int nParticles, double (*potential)(double, bool), double kT){
     Simulation result;
@@ -51,7 +51,8 @@ Simulation newSimulation(double boxX, double boxY, int nParticles, double (*pote
     result.potEnergy = 0;
     result.netForce = newVector(0,0);
 
-    result.debugFlag = false;
+    result.tempHist = (double*)malloc(sizeof(double) * 500);
+    result.potHist = (double*)malloc(sizeof(double) * 500);
 
     return result;
 }
@@ -257,7 +258,6 @@ void calculateForces(Simulation* sim){
         free(targets);
     }
     freeCellList(sim);
-    sim->debugFlag = true;
     //printSim(sim);
 }
 
@@ -322,9 +322,17 @@ void run(Simulation* sim, int nSteps, bool equibFlag){
         }
         sim->timestep++;
 
+        if(sim->timestep % 500 == 0){
+            sim->potHist = (double*)realloc(sim->potHist, (sim->timestep + 500) * sizeof(double));
+            sim->tempHist = (double*)realloc(sim->tempHist, (sim->timestep + 500)*sizeof(double));
+        }
+
         calculateNetForce(sim);
         calculatePotential(sim);
         calculateTemperature(sim);
+
+        sim->potHist[sim->timestep] = sim->potEnergy;
+        sim->tempHist[sim->timestep] = sim->temperature;
 
         if(mag(sim->netForce) > 0.1){
             printf("Net Force non-zero at timestep: %d! Force: (%lf, %lf)\n", sim->timestep, sim->netForce.x, sim->netForce.y);
@@ -339,6 +347,8 @@ void run(Simulation* sim, int nSteps, bool equibFlag){
 void freeSimulation(Simulation* sim){
     free(sim->particles);
     free(sim->cellList);
+    free(sim->tempHist);
+    free(sim->potHist);
 }
 
 void freeCellList(Simulation* sim){
