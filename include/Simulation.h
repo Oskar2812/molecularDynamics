@@ -21,7 +21,7 @@ typedef struct {
     double* potHist;
 } Simulation;
 
-Simulation newSimulation(double boxX, double boxY, int nParticles, double (*potential)(double, bool), double kT);
+Simulation newSimulation(double boxX, double boxY, int nParticles, double (*potential)(double, bool), double kT, bool pbcFlag);
 
 void initialise(Simulation* sim);
 
