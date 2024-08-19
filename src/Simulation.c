@@ -167,7 +167,10 @@ double LJPotential(double r, bool forceFlag){
 int arrayCoords(Simulation* sim, int x, int y){
 
     int coord = y*sim->nCellsX + x;
-    if(coord >= sim->nCells) exit(1);
+    if(coord >= sim->nCells) {
+        printf("Error: coord greater than nCells in arrayCoords\n");
+        exit(1);
+    }
 
     return coord;
 }
@@ -512,4 +515,39 @@ void rescale(Simulation* sim){
     for(int ii = 0; ii < sim->nParticles; ii++){
         sim->particles[ii].vel = mul(sim->particles[ii].vel, sim->kT/ktEff);
     }
+}
+
+void externForce(Simulation* sim, Vector pos, double strength){
+    constructCellList(sim);
+
+    int xCell = (int) pos.x / sim->cellX;
+    int yCell = (int) pos.y / sim->cellY;
+
+    int cell = arrayCoords(sim, xCell, yCell);
+
+    Cell** targets;
+    int nTargets = 9;
+    if(sim->pbcFlag){
+        targets = obtainCellTargetsPBC(sim, cell);
+    } else {
+        targets = obtainCellTargetsBox(sim, cell, &nTargets);
+    }
+    if(targets == NULL){
+        printf("Error allocating memory to targets in externForce");
+        exit(EXIT_FAILURE);
+    }
+
+    for(int cell = 0; cell < nTargets; cell++){
+        for(int ii = 0; ii < targets[cell]->nParticles; ii++){
+            Vector sep = sub(pos, targets[cell]->particles[ii]->pos);
+            double r = mag(sep);
+
+            sep = mul(sep, strength/r);
+            
+            targets[cell]->particles[ii]->force.x += sep.x;
+            targets[cell]->particles[ii]->force.y += sep.y;
+        }
+    }
+    free(targets);
+    freeCellList(sim);
 }

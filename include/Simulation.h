@@ -53,4 +53,6 @@ double getPot(Simulation* sim);
 
 void rescale(Simulation* sim);
 
+void externForce(Simulation* sim, Vector pos, double strength);
+
 #endif

@@ -82,11 +82,27 @@ bool IsButtonClicked(Button *button) {
     return false;
 }
 
+bool isScreenLeftClicked(int width, int height){
+    Rectangle screen = {0,0,width,height};
+    if(CheckCollisionPointRec(GetMousePosition(), screen) && IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
+        return true;
+    }
+    return false;
+}
+
+bool isScreenRightClicked(int width, int height){
+    Rectangle screen = {0,0,width,height};
+    if(CheckCollisionPointRec(GetMousePosition(), screen) && IsMouseButtonReleased(MOUSE_RIGHT_BUTTON)) {
+        return true;
+    }
+    return false;
+}
+
 void startGame(Simulation* sim, int width, int height){
     SetTraceLogLevel(LOG_ERROR);
     InitWindow(width + 0.5*width, height, "Molecular Dynamics Simulation");
     //SetWindowSize(width, height); 
-    SetTargetFPS(60);
+    SetTargetFPS(120);
 
     double radius = 0.2 * width / sim->boxX;
 
@@ -111,7 +127,7 @@ void startGame(Simulation* sim, int width, int height){
         ClearBackground(BLACK);
         DrawLine(width,0,width,height,RAYWHITE);
         char text[100];
-        sprintf(text, "Timestep: %d", sim->timestep);
+        sprintf(text, "Timestep: %d, Framerate: %d", sim->timestep, GetFPS());
         DrawText(text,5,5,20, RAYWHITE);
         drawGraph(sim, sim->tempHist, newVector(width, 0), newVector(0.5*width, 0.5*height), "Temperature");
         drawGraph(sim, sim->potHist, newVector(width, 0.5*height), newVector(0.5 * width, 0.5*height), "Potentail Energy");
@@ -121,8 +137,20 @@ void startGame(Simulation* sim, int width, int height){
             Vector pos = simCoordsToRayCoords(sim->particles[ii].pos, width, height, sim);
             DrawCircle(pos.x,pos.y,radius, LIGHTGRAY);
         }
-        if(IsButtonClicked(&gravButton)) gravButton.effect(sim);
-        if(IsButtonClicked(&pbcButton)) pbcButton.effect(sim);
+        if(IsButtonClicked(&gravButton)) {
+            gravButton.effect(sim);
+        } else if(IsButtonClicked(&pbcButton)) {
+            pbcButton.effect(sim);
+        } else if(isScreenLeftClicked(width, height)) {
+            Vector2 rayPos = GetMousePosition();
+            Vector pos = newVector(rayPos.x / width * sim->boxX, (1 - rayPos.y / height) * sim->boxY);
+            externForce(sim,pos,-500);
+        } else if(isScreenRightClicked(width, height)){
+            Vector2 rayPos = GetMousePosition();
+            Vector pos = newVector(rayPos.x / width * sim->boxX, (1 - rayPos.y / height) * sim->boxY);
+            externForce(sim,pos,500);
+        }
+            
         EndDrawing();
     }
     endGame(sim);
