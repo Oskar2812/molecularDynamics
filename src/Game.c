@@ -119,24 +119,39 @@ void startGame(Simulation* sim, int width, int height){
         .color = (Color){200,200,200,128},
         .effect = pbcEffect,
     };
+
+    Color velColour(Simulation* sim, double vel){
+        double normVel = (vel - sim->minVel) / (sim->maxVel - sim->minVel);
+
+        double red = (255 * normVel);
+        double blue = (255 * (1 - normVel));
+
+        return (Color) {red, 0, blue, 255};
+    }
     
 
     while(!WindowShouldClose()){
         run(sim, 1, true);
         BeginDrawing();
         ClearBackground(BLACK);
+    
+        for(int ii = 0; ii < sim->nParticles; ii++){
+            Vector pos = simCoordsToRayCoords(sim->particles[ii].pos, width, height, sim);
+            DrawCircle(pos.x,pos.y,radius, velColour(sim, sim->particles[ii].velMag));
+        }
+
         DrawLine(width,0,width,height,RAYWHITE);
+        
         char text[100];
         sprintf(text, "Timestep: %d, Framerate: %d", sim->timestep, GetFPS());
         DrawText(text,5,5,20, RAYWHITE);
+
         drawGraph(sim, sim->tempHist, newVector(width, 0), newVector(0.5*width, 0.5*height), "Temperature");
         drawGraph(sim, sim->potHist, newVector(width, 0.5*height), newVector(0.5 * width, 0.5*height), "Potentail Energy");
+
         drawButton(&gravButton);
         drawButton(&pbcButton);
-        for(int ii = 0; ii < sim->nParticles; ii++){
-            Vector pos = simCoordsToRayCoords(sim->particles[ii].pos, width, height, sim);
-            DrawCircle(pos.x,pos.y,radius, LIGHTGRAY);
-        }
+
         if(IsButtonClicked(&gravButton)) {
             gravButton.effect(sim);
         } else if(IsButtonClicked(&pbcButton)) {

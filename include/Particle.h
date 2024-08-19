@@ -6,14 +6,13 @@
 typedef struct{
     int id;
     int xCell, yCell;
+    double velMag;
     Vector pos;
     Vector vel;
     Vector force;
 } Particle;
 
 Particle newParticle(int id, Vector pos, Vector vel);
-
-double energy(Particle* pp);
 
 void printParticle(Particle pp);
 

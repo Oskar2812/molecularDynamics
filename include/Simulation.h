@@ -10,7 +10,7 @@ typedef struct {
     int nParticles, timestep;
     Particle* particles;
     double (*potential)(double, bool);
-    double kT;
+    double kT, maxVel, minVel;
     bool pbcFlag, gravFlag;
     int nCellsX, nCellsY, nCells;
     double cellX, cellY;

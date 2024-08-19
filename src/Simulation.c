@@ -32,6 +32,9 @@ Simulation newSimulation(double boxX, double boxY, int nParticles, double (*pote
 
     result.kT = kT;
 
+    result.minVel = RAND_MAX;
+    result.maxVel = 0;
+
     result.pbcFlag = true;
     result.gravFlag = false;
 
@@ -117,6 +120,9 @@ void initialise(Simulation* sim){
         sim->particles[ii].vel.x = sim->particles[ii].vel.x - meanKTx;
         sim->particles[ii].vel.y = sim->particles[ii].vel.y - meanKTy;
     }
+
+    calculatePotential(sim);
+    calculateTemperature(sim);
 }
 
 double hardDiskPotential(double r, bool forceFlag){
@@ -485,9 +491,17 @@ void calculatePotential(Simulation* sim){
 
 void calculateTemperature(Simulation* sim){
     sim->temperature = 0;
-
+    sim->maxVel = 0;
+    sim->minVel = RAND_MAX;
     for(int ii = 0; ii < sim->nParticles; ii++){
-        sim->temperature += energy(&sim->particles[ii]);
+        double vel = mag(sim->particles[ii].vel);
+
+        sim->particles[ii].velMag = vel;
+
+        if(vel > sim->maxVel) sim->maxVel = vel;
+        if(vel < sim->minVel) sim->minVel = vel;
+
+        sim->temperature += 0.5 * vel * vel;
     }
 
     sim->temperature *= ((double)1/(double)(sim->nParticles * 1.5));

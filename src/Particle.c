@@ -9,11 +9,8 @@ Particle newParticle(int id, Vector pos, Vector vel){
     p.force = newVector(0,0);
     p.xCell = -1;
     p.yCell = -1;
+    p.velMag = mag(vel);
     return p;
-}
-
-double energy(Particle* pp){
-    return 0.5*mag2(pp->vel);
 }
 
 void printParticle(Particle pp){
