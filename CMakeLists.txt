@@ -27,7 +27,13 @@ link_directories(raylib-5.0_linux_amd64/lib)
 add_executable(MolecularDynamics src/main.c ${SOURCES} ${HEADERS})
 add_executable(Benchmarking test/benchmark.c ${SOURCES} ${HEADERS})
 
-target_link_libraries(MolecularDynamics m raylib)
-target_link_libraries(Benchmarking m raylib)
+add_compile_options(-Wall -Werror -fopenmp)
+
+find_package(OpenMP REQUIRED)
+
+if(OpenMP_C_FOUND)
+    target_link_libraries(MolecularDynamics PUBLIC OpenMP::OpenMP_C m raylib)
+    target_link_libraries(Benchmarking PUBLIC OpenMP::OpenMP_C  m raylib)
+endif()
 
 
