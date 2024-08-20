@@ -10,7 +10,7 @@ typedef struct Button {
     Rectangle bounds;
     const char *text;
     Color color;
-    void(*effect)(Simulation* sim);
+    bool* flag;
 } Button;
 
 // Define a structure to hold slider data

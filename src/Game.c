@@ -11,15 +11,6 @@ Vector simCoordsToRayCoords(Vector v, int width, int height, Simulation* sim){
     return result;
 }
 
-
-void gravEffect(Simulation* sim){
-    sim->gravFlag = !sim->gravFlag;
-}
-
-void pbcEffect(Simulation* sim){
-    sim->pbcFlag = !sim->pbcFlag;
-}
-
 Color velColour(Simulation* sim, double vel){
         double normVel = (vel - sim->minVel) / (sim->maxVel - sim->minVel);
 
@@ -41,21 +32,20 @@ void startGame(Simulation* sim, int width, int height){
         .bounds = {width - 90, 20, 70, 30},
         .text = "Gravity",
         .color = (Color){200,200,200,128},
-        .effect = gravEffect
+        .flag = &sim->gravFlag,
     };
 
     Button pbcButton = {
         .bounds = {width - 180, 20, 70, 30},
         .text = "PBC",
         .color = (Color){200,200,200,128},
-        .effect = pbcEffect,
+        .flag = &sim->pbcFlag,
     };
 
     Button pauseButton = {
         .bounds = {20, height - 40, 30, 30},
         .text = "||",
         .color = (Color) {200,200,200,128},
-        .effect = NULL,
     };
 
     bool isPaused = false;
@@ -93,9 +83,9 @@ void startGame(Simulation* sim, int width, int height){
         UpdateSlider(&gravSlider, sim);
 
         if(IsButtonClicked(&gravButton)) {
-            gravButton.effect(sim);
+            *gravButton.flag = !*gravButton.flag;
         } else if(IsButtonClicked(&pbcButton)) {
-            pbcButton.effect(sim);
+            *pbcButton.flag = !*pbcButton.flag;
         } else if(IsButtonClicked(&pauseButton)) {
             isPaused = !isPaused;
         } else if(isScreenLeftClicked(width, height)) {
