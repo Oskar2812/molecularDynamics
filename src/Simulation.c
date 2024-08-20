@@ -58,6 +58,7 @@ Simulation newSimulation(double boxX, double boxY, int nParticles, double (*pote
 
     result.tempHist = (double*)malloc(sizeof(double) * 500);
     result.potHist = (double*)malloc(sizeof(double) * 500);
+    result.velList = (double*)malloc(sizeof(double) * nParticles);
 
     return result;
 }
@@ -497,6 +498,7 @@ void calculateTemperature(Simulation* sim){
         double vel = mag(sim->particles[ii].vel);
 
         sim->particles[ii].velMag = vel;
+        sim->velList[ii] = vel;
 
         if(vel > sim->maxVel) sim->maxVel = vel;
         if(vel < sim->minVel) sim->minVel = vel;

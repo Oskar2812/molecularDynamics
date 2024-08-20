@@ -10,7 +10,7 @@ Vector simCoordsToRayCoords(Vector v, int width, int height, Simulation* sim){
     return result;
 }
 
-void drawGraph(Simulation* sim, double* datapoints, Vector pos, Vector size, char* label){
+void drawGraph(double* datapoints, int points, Vector pos, Vector size, char* label){
     const int offset = 30;
     DrawLine(pos.x + offset, pos.y + offset, pos.x + offset, pos.y + size.y - offset, RAYWHITE);
     DrawLine(pos.x + offset, pos.y + size.y - offset, pos.x + size.x - offset, pos.y + size.y - offset, RAYWHITE);
@@ -19,7 +19,7 @@ void drawGraph(Simulation* sim, double* datapoints, Vector pos, Vector size, cha
 
     double max = datapoints[0];
     double min = datapoints[0];
-    for(int ii = 0; ii < sim->timestep; ii++){
+    for(int ii = 0; ii < points; ii++){
         if(datapoints[ii] > max){
             max = datapoints[ii];
         }
@@ -42,7 +42,7 @@ void drawGraph(Simulation* sim, double* datapoints, Vector pos, Vector size, cha
         max = max - min;
     }
 
-    for(int ii = 1; ii < sim->timestep; ii++){
+    for(int ii = 1; ii < points; ii++){
         double y1, y2;
         if(min < 0){
             y1 = (pos.y + size.y - offset) - ((datapoints[ii - 1] - min) / max) * (size.y - 2*offset);
@@ -51,8 +51,8 @@ void drawGraph(Simulation* sim, double* datapoints, Vector pos, Vector size, cha
             y1 = (pos.y + size.y - offset) - (datapoints[ii - 1] / max) * (size.y - 2*offset);
             y2 = (pos.y + size.y - offset) - (datapoints[ii] / max) * (size.y - 2*offset);
         }
-        double x1 = pos.x + offset + (double)(ii - 1) / (double)sim->timestep * (size.x - 2*offset);
-        double x2 = pos.x + offset + (double)ii / (double)sim->timestep * (size.x - 2*offset);
+        double x1 = pos.x + offset + (double)(ii - 1) / (double)points * (size.x - 2*offset);
+        double x2 = pos.x + offset + (double)ii / (double)points * (size.x - 2*offset);
         DrawLine(x1, y1, x2, y2 , RAYWHITE);
     }  
 }
@@ -98,9 +98,18 @@ bool isScreenRightClicked(int width, int height){
     return false;
 }
 
+Color velColour(Simulation* sim, double vel){
+        double normVel = (vel - sim->minVel) / (sim->maxVel - sim->minVel);
+
+        double red = (255 * normVel);
+        double blue = (255 * (1 - normVel));
+
+        return (Color) {red, 0, blue, 255};
+    }
+
 void startGame(Simulation* sim, int width, int height){
     SetTraceLogLevel(LOG_ERROR);
-    InitWindow(width + 0.5*width, height, "Molecular Dynamics Simulation");
+    InitWindow(width + width, height, "Molecular Dynamics Simulation");
     //SetWindowSize(width, height); 
     SetTargetFPS(120);
 
@@ -120,18 +129,17 @@ void startGame(Simulation* sim, int width, int height){
         .effect = pbcEffect,
     };
 
-    Color velColour(Simulation* sim, double vel){
-        double normVel = (vel - sim->minVel) / (sim->maxVel - sim->minVel);
+    Button pauseButton = {
+        .bounds = {20, height - 40, 30, 30},
+        .text = "||",
+        .color = (Color) {200,200,200,128},
+        .effect = NULL,
+    };
 
-        double red = (255 * normVel);
-        double blue = (255 * (1 - normVel));
-
-        return (Color) {red, 0, blue, 255};
-    }
-    
+    bool isPaused = false;
 
     while(!WindowShouldClose()){
-        run(sim, 1, true);
+        if(!isPaused) run(sim, 1, false);
         BeginDrawing();
         ClearBackground(BLACK);
     
@@ -146,16 +154,20 @@ void startGame(Simulation* sim, int width, int height){
         sprintf(text, "Timestep: %d, Framerate: %d", sim->timestep, GetFPS());
         DrawText(text,5,5,20, RAYWHITE);
 
-        drawGraph(sim, sim->tempHist, newVector(width, 0), newVector(0.5*width, 0.5*height), "Temperature");
-        drawGraph(sim, sim->potHist, newVector(width, 0.5*height), newVector(0.5 * width, 0.5*height), "Potentail Energy");
+        drawGraph(sim->tempHist, sim->timestep, newVector(width, 0), newVector(0.5*width, 0.5*height), "Temperature");
+        drawGraph(sim->potHist, sim->timestep, newVector(width, 0.5*height), newVector(0.5 * width, 0.5*height), "Potential Energy");
+        drawGraph(sim->velList, sim->nParticles, newVector(1.5*width, 0), newVector(0.5*width, 0.5*height), "Velocity distribution");
 
         drawButton(&gravButton);
         drawButton(&pbcButton);
+        drawButton(&pauseButton);
 
         if(IsButtonClicked(&gravButton)) {
             gravButton.effect(sim);
         } else if(IsButtonClicked(&pbcButton)) {
             pbcButton.effect(sim);
+        } else if(IsButtonClicked(&pauseButton)) {
+            isPaused = !isPaused;
         } else if(isScreenLeftClicked(width, height)) {
             Vector2 rayPos = GetMousePosition();
             Vector pos = newVector(rayPos.x / width * sim->boxX, (1 - rayPos.y / height) * sim->boxY);
@@ -165,7 +177,7 @@ void startGame(Simulation* sim, int width, int height){
             Vector pos = newVector(rayPos.x / width * sim->boxX, (1 - rayPos.y / height) * sim->boxY);
             externForce(sim,pos,500);
         }
-            
+         
         EndDrawing();
     }
     endGame(sim);

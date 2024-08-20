@@ -19,6 +19,7 @@ typedef struct {
     Cell* cellList;
     double* tempHist; 
     double* potHist;
+    double* velList;
 } Simulation;
 
 Simulation newSimulation(double boxX, double boxY, int nParticles, double (*potential)(double, bool), double kT);

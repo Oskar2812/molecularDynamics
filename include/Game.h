@@ -10,4 +10,4 @@ typedef struct Button {
 
 void startGame(Simulation* sim, int width, int height);
 void endGame(Simulation* sim);
-void drawGraph(Simulation* sim, double* datapoints, Vector pos, Vector size, char* label);
+void drawGraph(double* datapoints, int points, Vector pos, Vector size, char* label);
