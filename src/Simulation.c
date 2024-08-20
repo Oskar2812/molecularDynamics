@@ -56,9 +56,10 @@ Simulation newSimulation(double boxX, double boxY, int nParticles, double (*pote
     result.potEnergy = 0;
     result.netForce = newVector(0,0);
 
-    result.tempHist = (double*)malloc(sizeof(double) * 500);
-    result.potHist = (double*)malloc(sizeof(double) * 500);
-    result.velList = (double*)malloc(sizeof(double) * nParticles);
+    result.tempList = (double*)malloc(sizeof(double) * 500);
+    result.potList = (double*)malloc(sizeof(double) * 500);
+    result.velHist = newHistogram(100, 0, 0.1 * result.boxX);
+    result.posHist = newHistogram(100,0, result.boxX);
 
     return result;
 }
@@ -366,6 +367,8 @@ void printSim(Simulation* sim){
 }
 
 void run(Simulation* sim, int nSteps, bool equibFlag){
+    clearHistogram(&sim->velHist);
+    clearHistogram(&sim->posHist);
     for(int tt = 0; tt < nSteps; tt++){
         //First Verlet step
         if(sim->timestep == 0) {
@@ -424,16 +427,16 @@ void run(Simulation* sim, int nSteps, bool equibFlag){
         calculateTemperature(sim);
 
         if(sim->timestep % 500 == 0){
-            sim->potHist = (double*)realloc(sim->potHist, (sim->timestep + 500) * sizeof(double));
-            sim->tempHist = (double*)realloc(sim->tempHist, (sim->timestep + 500)*sizeof(double));
-            if(sim->potHist == NULL || sim->tempHist == NULL){
+            sim->potList = (double*)realloc(sim->potList, (sim->timestep + 500) * sizeof(double));
+            sim->tempList = (double*)realloc(sim->tempList, (sim->timestep + 500)*sizeof(double));
+            if(sim->potList == NULL || sim->tempList == NULL){
                 printf("Error: failed to realocate memory for tempHist or potHist\n");
                 exit(EXIT_FAILURE);
             }
         }
 
-        sim->potHist[sim->timestep] = sim->potEnergy;
-        sim->tempHist[sim->timestep] = sim->temperature;
+        sim->potList[sim->timestep] = sim->potEnergy;
+        sim->tempList[sim->timestep] = sim->temperature;
 
         if(mag(sim->netForce) > 0.1 && !sim->gravFlag){
             printf("Net Force non-zero at timestep: %d! Force: (%lf, %lf)\n", sim->timestep, sim->netForce.x, sim->netForce.y);
@@ -449,8 +452,9 @@ void run(Simulation* sim, int nSteps, bool equibFlag){
 void freeSimulation(Simulation* sim){
     free(sim->particles);
     free(sim->cellList);
-    free(sim->tempHist);
-    free(sim->potHist);
+    free(sim->tempList);
+    free(sim->potList);
+    freeHistogram(&sim->velHist);
 }
 
 void freeCellList(Simulation* sim){
@@ -494,11 +498,15 @@ void calculateTemperature(Simulation* sim){
     sim->temperature = 0;
     sim->maxVel = 0;
     sim->minVel = RAND_MAX;
+    Vector center = newVector(0.5 * sim->boxX, 0.5 * sim->boxY);
+
     for(int ii = 0; ii < sim->nParticles; ii++){
         double vel = mag(sim->particles[ii].vel);
-
+        double pos = mag(sub(center, sim->particles[ii].pos));
+        
         sim->particles[ii].velMag = vel;
-        sim->velList[ii] = vel;
+        addData(&sim->velHist, vel);
+        addData(&sim->posHist, pos);
 
         if(vel > sim->maxVel) sim->maxVel = vel;
         if(vel < sim->minVel) sim->minVel = vel;

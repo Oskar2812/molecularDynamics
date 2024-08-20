@@ -11,15 +11,19 @@ Vector simCoordsToRayCoords(Vector v, int width, int height, Simulation* sim){
 }
 
 void drawGraph(double* datapoints, int points, Vector pos, Vector size, char* label){
+    int start = 0;
+    if(points > 1000){
+        start = points - 1000;
+    }
     const int offset = 30;
     DrawLine(pos.x + offset, pos.y + offset, pos.x + offset, pos.y + size.y - offset, RAYWHITE);
     DrawLine(pos.x + offset, pos.y + size.y - offset, pos.x + size.x - offset, pos.y + size.y - offset, RAYWHITE);
 
-    DrawText(label, pos.x + offset + 10, pos.y + size.y - offset + 5, 10, RAYWHITE);
+    DrawText(label, pos.x + offset + 10, pos.y + size.y - offset + 10, 10, RAYWHITE);
 
-    double max = datapoints[0];
-    double min = datapoints[0];
-    for(int ii = 0; ii < points; ii++){
+    double max = datapoints[start];
+    double min = datapoints[start];
+    for(int ii = start; ii < points; ii++){
         if(datapoints[ii] > max){
             max = datapoints[ii];
         }
@@ -31,18 +35,24 @@ void drawGraph(double* datapoints, int points, Vector pos, Vector size, char* la
     double range = abs(max - min);
 
     for(int ii = 0; ii < 10; ii++){
-        char axisMarking[100];
-        sprintf(axisMarking, "%.2lf", min + ii * range / 9);
+        char yAxisMarking[100];
+        sprintf(yAxisMarking, "%.2lf", min + ii * range / 9);
         DrawLine(pos.x + offset/1.5, pos.y + size.y - offset - ii * (size.y - 2 * offset) / 9,
         pos.x + offset, pos.y + size.y - offset - ii * (size.y - 2 * offset) / 9, RAYWHITE);
-        DrawText(axisMarking, pos.x + offset/5, pos.y + size.y - offset - ii * (size.y - 2 * offset) / 9 - 5, 1, RAYWHITE);
+        DrawText(yAxisMarking, pos.x + offset/5, pos.y + size.y - offset - ii * (size.y - 2 * offset) / 9 - 5, 1, RAYWHITE);
+
+        char xAxisMarking[100];
+        sprintf(xAxisMarking, "%d",  start + ii * (points - start) / 10);
+        DrawLine(pos.x + offset + ii * (size.x - 2* offset)/ 10 , pos.y + size.y - offset,
+        pos.x + offset + ii* (size.x - 2* offset) / 10, pos.y + size.y - 0.9*offset, RAYWHITE);
+        DrawText(xAxisMarking, pos.x + offset + ii * (size.x - 2* offset) / 10, pos.y + size.y - offset, 1, RAYWHITE);
     }
 
     if(min < 0){
         max = max - min;
     }
 
-    for(int ii = 1; ii < points; ii++){
+    for(int ii = start + 1; ii < points; ii++){
         double y1, y2;
         if(min < 0){
             y1 = (pos.y + size.y - offset) - ((datapoints[ii - 1] - min) / max) * (size.y - 2*offset);
@@ -51,8 +61,62 @@ void drawGraph(double* datapoints, int points, Vector pos, Vector size, char* la
             y1 = (pos.y + size.y - offset) - (datapoints[ii - 1] / max) * (size.y - 2*offset);
             y2 = (pos.y + size.y - offset) - (datapoints[ii] / max) * (size.y - 2*offset);
         }
-        double x1 = pos.x + offset + (double)(ii - 1) / (double)points * (size.x - 2*offset);
-        double x2 = pos.x + offset + (double)ii / (double)points * (size.x - 2*offset);
+        double x1 = pos.x + offset + (double)(ii - start - 1) / (double)(points - start) * (size.x - 2*offset);
+        double x2 = pos.x + offset + (double)(ii - start) / (double)(points - start) * (size.x - 2*offset);
+        DrawLine(x1, y1, x2, y2 , RAYWHITE);
+    }  
+}
+
+void drawHist(Histogram* hist, Vector pos, Vector size, char* label){
+    const int offset = 30;
+    DrawLine(pos.x + offset, pos.y + offset, pos.x + offset, pos.y + size.y - offset, RAYWHITE);
+    DrawLine(pos.x + offset, pos.y + size.y - offset, pos.x + size.x - offset, pos.y + size.y - offset, RAYWHITE);
+
+    DrawText(label, pos.x + offset + 1, pos.y + size.y - offset + 10, 10, RAYWHITE);
+
+    double max = hist->counts[0];
+    double min = hist->counts[0];
+    for(int ii = 0; ii < hist->nBins; ii++){
+        if(hist->counts[ii] > max){
+            max = hist->counts[ii];
+        }
+        if(hist->counts[ii] < min){
+            min = hist->counts[ii];
+        }
+    }
+
+    double range = abs(max - min);
+    double inc = abs(hist->end - hist->start);
+
+    for(int ii = 0; ii < 10; ii++){
+        char yAxisMarking[100];
+        sprintf(yAxisMarking, "%.2lf", min + ii * range / 9);
+        DrawLine(pos.x + offset/1.5, pos.y + size.y - offset - ii * (size.y - 2 * offset) / 9,
+        pos.x + offset, pos.y + size.y - offset - ii * (size.y - 2 * offset) / 9, RAYWHITE);
+        DrawText(yAxisMarking, pos.x + offset/5, pos.y + size.y - offset - ii * (size.y - 2 * offset) / 9 - 5, 1, RAYWHITE);
+
+        char xAxisMarking[100];
+        sprintf(xAxisMarking, "%.2lf", hist->start + ii*inc);
+        DrawLine(pos.x + offset + ii * (size.x - 2* offset)/ 10 , pos.y + size.y - offset,
+        pos.x + offset + ii* (size.x - 2* offset) / 10, pos.y + size.y - 0.9*offset, RAYWHITE);
+        DrawText(xAxisMarking, pos.x + offset + ii * (size.x - 2* offset) / 10, pos.y + size.y - offset, 1, RAYWHITE);
+    }
+
+    if(min < 0){
+        max = max - min;
+    }
+
+    for(int ii = 1; ii < hist->nBins; ii++){
+        double y1, y2;
+        if(min < 0){
+            y1 = (pos.y + size.y - offset) - ((hist->counts[ii - 1] - min) / max) * (size.y - 2*offset);
+            y2 = (pos.y + size.y - offset) - ((hist->counts[ii] - min) / max) * (size.y - 2*offset);
+        } else {
+            y1 = (pos.y + size.y - offset) - (hist->counts[ii - 1] / max) * (size.y - 2*offset);
+            y2 = (pos.y + size.y - offset) - (hist->counts[ii] / max) * (size.y - 2*offset);
+        }
+        double x1 = pos.x + offset + (double)(ii - 1) / (double)hist->nBins * (size.x - 2*offset);
+        double x2 = pos.x + offset + (double)ii / (double)hist->nBins * (size.x - 2*offset);
         DrawLine(x1, y1, x2, y2 , RAYWHITE);
     }  
 }
@@ -139,10 +203,10 @@ void startGame(Simulation* sim, int width, int height){
     bool isPaused = false;
 
     while(!WindowShouldClose()){
-        if(!isPaused) run(sim, 1, false);
+        if(!isPaused) run(sim, 1, true);
         BeginDrawing();
         ClearBackground(BLACK);
-    
+
         for(int ii = 0; ii < sim->nParticles; ii++){
             Vector pos = simCoordsToRayCoords(sim->particles[ii].pos, width, height, sim);
             DrawCircle(pos.x,pos.y,radius, velColour(sim, sim->particles[ii].velMag));
@@ -154,9 +218,10 @@ void startGame(Simulation* sim, int width, int height){
         sprintf(text, "Timestep: %d, Framerate: %d", sim->timestep, GetFPS());
         DrawText(text,5,5,20, RAYWHITE);
 
-        drawGraph(sim->tempHist, sim->timestep, newVector(width, 0), newVector(0.5*width, 0.5*height), "Temperature");
-        drawGraph(sim->potHist, sim->timestep, newVector(width, 0.5*height), newVector(0.5 * width, 0.5*height), "Potential Energy");
-        drawGraph(sim->velList, sim->nParticles, newVector(1.5*width, 0), newVector(0.5*width, 0.5*height), "Velocity distribution");
+        drawGraph(sim->tempList, sim->timestep, newVector(width, 0), newVector(0.5*width, 0.5*height), "Temperature");
+        drawGraph(sim->potList, sim->timestep, newVector(width, 0.5*height), newVector(0.5 * width, 0.5*height), "Potential Energy");
+        drawHist(&sim->velHist, newVector(1.5*width, 0), newVector(0.5*width, 0.5*height), "Velocity distribution");
+        drawHist(&sim->posHist, newVector(1.5*width, 0.5*height), newVector(0.5*width, 0.5*height), "Radial distribution");
 
         drawButton(&gravButton);
         drawButton(&pbcButton);
