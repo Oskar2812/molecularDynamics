@@ -1,12 +1,13 @@
 #ifndef SIMULATION_H
-#define SIMUATION_H
+#define SIMULATION_H
 
 #include "Particle.h"
 #include "Cell.h"
+#include "Histogram.h"
 #include <stdbool.h>
 
 typedef struct {
-    double boxX, boxY;
+    double boxX, boxY, G;
     int nParticles, timestep;
     Particle* particles;
     double (*potential)(double, bool);
@@ -17,9 +18,9 @@ typedef struct {
     double temperature, potEnergy;
     Vector netForce;
     Cell* cellList;
-    double* tempHist; 
-    double* potHist;
-    double* velList;
+    double* tempList; 
+    double* potList;
+    Histogram velHist, posHist;
 } Simulation;
 
 Simulation newSimulation(double boxX, double boxY, int nParticles, double (*potential)(double, bool), double kT);

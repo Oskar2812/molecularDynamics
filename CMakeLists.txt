@@ -9,19 +9,25 @@ set(SOURCES
     src/Particle.c
     src/Simulation.c 
     src/Vector.c
-    src/Game.c)
+    src/Game.c
+    src/Histogram.c
+    src/Assets.c)
 
 set(HEADERS 
     include/Cell.h 
     include/Particle.h
     include/Simulation.h 
     include/Vector.h
-    include/Game.h)
+    include/Game.h
+    include/Histogram.h
+    include/Assets.h)
 
 link_directories(raylib-5.0_linux_amd64/lib)
 
 add_executable(MolecularDynamics src/main.c ${SOURCES} ${HEADERS})
+add_executable(Benchmarking test/benchmark.c ${SOURCES} ${HEADERS})
 
 target_link_libraries(MolecularDynamics m raylib)
+target_link_libraries(Benchmarking m raylib)
 
 
