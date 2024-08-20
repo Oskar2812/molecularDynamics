@@ -2,8 +2,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <math.h>
+#include <omp.h>
 
 int main(){
 
@@ -16,14 +16,14 @@ int main(){
 
         double box = sqrt(nParticles[ii]);
 
-        double start = clock();
+        double start = omp_get_wtime();
         Simulation sim = newSimulation(box, box, nParticles[ii], LJPotential, 1.5);
 
         initialise(&sim);
 
-        run(&sim, 5, true);
+        run(&sim, 5000, true);
 
-        double time = (clock() - start) / CLOCKS_PER_SEC;
+        double time = (omp_get_wtime() - start);
         printf("Run for %d particles complete. Time taken: %lfs\n", nParticles[ii], time);
         fflush(stdout);
         times[ii] = time;

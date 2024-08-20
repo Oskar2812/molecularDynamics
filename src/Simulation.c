@@ -318,7 +318,8 @@ void calculateForces(Simulation* sim){
         sim->particles[ii].force = newVector(0,0);
     }
     constructCellList(sim);
-    
+
+    #pragma omp parallel for shared(sim)
     for(int ii = 0; ii < sim->nCells; ii++){
         int nTargets = 9;
         Cell** targets;
