@@ -1,5 +1,5 @@
 #ifndef SIMULATION_H
-#define SIMUATION_H
+#define SIMULATION_H
 
 #include "Particle.h"
 #include "Cell.h"

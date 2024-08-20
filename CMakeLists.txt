@@ -10,7 +10,8 @@ set(SOURCES
     src/Simulation.c 
     src/Vector.c
     src/Game.c
-    src/Histogram.c)
+    src/Histogram.c
+    src/Assets.c)
 
 set(HEADERS 
     include/Cell.h 
@@ -18,7 +19,8 @@ set(HEADERS
     include/Simulation.h 
     include/Vector.h
     include/Game.h
-    include/Histogram.h)
+    include/Histogram.h
+    include/Assets.h)
 
 link_directories(raylib-5.0_linux_amd64/lib)
 

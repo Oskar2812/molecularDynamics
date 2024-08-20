@@ -1,4 +1,5 @@
-
+#ifndef HISTOGRAM_H
+#define HISTOGRAM_H
 
 typedef struct {
     int nBins, totalData;
@@ -15,3 +16,5 @@ void freeHistogram(Histogram* hist);
 void printHistogram(Histogram* hist);
 
 void clearHistogram(Histogram* hist);
+
+#endif
