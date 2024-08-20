@@ -7,7 +7,7 @@
 #include <stdbool.h>
 
 typedef struct {
-    double boxX, boxY;
+    double boxX, boxY, G;
     int nParticles, timestep;
     Particle* particles;
     double (*potential)(double, bool);

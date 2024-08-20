@@ -145,3 +145,63 @@ bool isScreenRightClicked(int width, int height){
     }
     return false;
 }
+
+// Function to create a slider
+Slider CreateSlider(double x, double y, double width, double height, double minValue, double maxValue, double* defaultValue, char* label) {
+    Slider slider;
+    slider.track = (Rectangle){x, y, width, height};
+    slider.knob = (Rectangle){x, y, height, height}; // Knob is initially at the start of the track
+    slider.minValue = minValue;
+    slider.maxValue = maxValue;
+    slider.value = defaultValue;
+    slider.dragging = false;
+    slider.label = label;
+
+    // Calculate initial knob position based on default value
+    double knobX = x + ((*defaultValue - minValue) / (maxValue - minValue)) * width;
+    slider.knob.x = knobX;
+
+    return slider;
+}
+
+// Function to update and draw the slider
+void UpdateSlider(Slider *slider, Simulation* sim) {
+    Vector2 mouse = GetMousePosition();
+
+    // Check if mouse is over the knob and if the left mouse button is pressed
+    if (CheckCollisionPointRec(mouse, slider->knob)) {
+        if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+            slider->dragging = true;
+        }
+    }
+
+    // If dragging, move the knob with the mouse
+    if (slider->dragging) {
+        if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
+            slider->dragging = false;
+        } else {
+            // Calculate new knob position
+            slider->knob.x = mouse.x - slider->knob.width / 2;
+
+            // Constrain knob within track limits
+            if (slider->knob.x < slider->track.x) {
+                slider->knob.x = slider->track.x;
+            } else if (slider->knob.x > slider->track.x + slider->track.width - slider->knob.width) {
+                slider->knob.x = slider->track.x + slider->track.width - slider->knob.width;
+            }
+
+            // Update slider value based on knob position
+            *slider->value = (double)slider->minValue + (double)(slider->knob.x - slider->track.x) / (double)slider->track.width * (double)(slider->maxValue - slider->minValue);  
+        }
+    }
+
+    // Draw the slider track
+    DrawRectangleRec(slider->track, GRAY);
+
+    // Draw the slider knob
+    DrawRectangleRec(slider->knob, DARKGRAY);
+
+    char label[100];
+    sprintf(label, "%s: %.2lf", slider->label, *slider->value);
+    DrawText(label, slider->track.x, slider->track.y + slider->track.height, 20, RAYWHITE);
+}

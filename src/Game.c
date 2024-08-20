@@ -31,7 +31,7 @@ Color velColour(Simulation* sim, double vel){
 
 void startGame(Simulation* sim, int width, int height){
     SetTraceLogLevel(LOG_ERROR);
-    InitWindow(width + width, height, "Molecular Dynamics Simulation");
+    InitWindow(width + width, height + 0.25*height, "Molecular Dynamics Simulation");
     //SetWindowSize(width, height); 
     SetTargetFPS(120);
 
@@ -60,6 +60,9 @@ void startGame(Simulation* sim, int width, int height){
 
     bool isPaused = false;
 
+    Slider tempSlider = CreateSlider(30, height + 30, 0.45*(width - 30), 0.025*height, 0, 5, &sim->kT, "kT");
+    Slider gravSlider = CreateSlider(30, height + 0.025 * height + 80, 0.45*(width - 30), 0.025*height, -10, 10, &sim->G, "Gravitational Strength");
+
     while(!WindowShouldClose()){
         if(!isPaused) run(sim, 1, true);
         BeginDrawing();
@@ -71,6 +74,7 @@ void startGame(Simulation* sim, int width, int height){
         }
 
         DrawLine(width,0,width,height,RAYWHITE);
+        DrawLine(0, height, width, height, RAYWHITE);
         
         char text[100];
         sprintf(text, "Timestep: %d, Framerate: %d", sim->timestep, GetFPS());
@@ -84,6 +88,9 @@ void startGame(Simulation* sim, int width, int height){
         drawButton(&gravButton);
         drawButton(&pbcButton);
         drawButton(&pauseButton);
+
+        UpdateSlider(&tempSlider, sim);
+        UpdateSlider(&gravSlider, sim);
 
         if(IsButtonClicked(&gravButton)) {
             gravButton.effect(sim);

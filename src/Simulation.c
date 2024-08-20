@@ -7,7 +7,6 @@
 
 const double radius = 1;
 const double force = 500;
-const double G = 3;
 const double cutoff = 3.5;
 
 const double dt = 0.0075;
@@ -17,6 +16,8 @@ Simulation newSimulation(double boxX, double boxY, int nParticles, double (*pote
 
     result.boxX = boxX;
     result.boxY = boxY;
+
+    result.G = 0;
 
     result.nParticles = nParticles;
 
@@ -352,7 +353,7 @@ void calculateForces(Simulation* sim){
 
 void addGravity(Simulation* sim){
     for(int ii = 0; ii < sim->nParticles; ii++){
-        Vector gravForce = newVector(0, -G);
+        Vector gravForce = newVector(0, -sim->G);
         sim->particles[ii].force = add(sim->particles[ii].force, gravForce);
     }
 }
@@ -476,7 +477,7 @@ void calculatePotential(Simulation* sim){
         }
         for(int jj = 0; jj < sim->cellList[ii].nParticles; jj++){
             if(sim->gravFlag){
-                        sim->potEnergy += G * sim->cellList[ii].particles[jj]->pos.y;
+                        sim->potEnergy += sim->G * sim->cellList[ii].particles[jj]->pos.y;
                     }
             for(int cell = 0; cell < nTargets; cell++){
                 for(int kk = 0; kk < targets[cell]->nParticles; kk++){
