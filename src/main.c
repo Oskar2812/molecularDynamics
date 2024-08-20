@@ -3,7 +3,7 @@
 
 int main(){
 
-    Simulation sim = newSimulation(100, 100, 1024, LJPotential, 1.5);
+    Simulation sim = newSimulation(150, 150, 4096, LJPotential, 1.5);
     initialise(&sim);
     
     startGame(&sim, 800, 600);

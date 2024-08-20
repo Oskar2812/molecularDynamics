@@ -25,7 +25,9 @@ set(HEADERS
 link_directories(raylib-5.0_linux_amd64/lib)
 
 add_executable(MolecularDynamics src/main.c ${SOURCES} ${HEADERS})
+add_executable(Benchmarking test/benchmark.c ${SOURCES} ${HEADERS})
 
 target_link_libraries(MolecularDynamics m raylib)
+target_link_libraries(Benchmarking m raylib)
 
 
