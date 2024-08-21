@@ -5,8 +5,7 @@
 #include <math.h>
 #include <omp.h>
 
-int main(){
-
+void benchmarkVarParticles(int nSteps){
     const double targDensity = 1;
 
     int nParticles[] = {256, 512, 1024, 1536, 2048, 2560, 3072, 3584, 4096};
@@ -21,7 +20,7 @@ int main(){
 
         initialise(&sim);
 
-        run(&sim, 5000, true);
+        run(&sim, nSteps, true);
 
         double time = (omp_get_wtime() - start);
         printf("Run for %d particles complete. Time taken: %lfs\n", nParticles[ii], time);
@@ -44,6 +43,21 @@ int main(){
     fprintf(file,"\n");
 
     fclose(file);
+}
 
+void timeSimulationFunctions(int nSteps){
+    Simulation sim = newSimulation(45.25,45.25, 2048, LJPotential, 1.5);
+
+    initialise(&sim);
+    run(&sim, nSteps, true);
+
+    printf("Function timings: \ncalculateForces: %lf\nrun: %lf\nconstructCellList: %lf\nobtainCellTargets: %lf\n",
+            sim.calcForcesTime, sim.runTime, sim.constrCellListTime, sim.targetsTime);
+}
+
+int main(){
+    printf("Begging benchmarking, number of threads: %d\n", omp_get_num_threads());
+    benchmarkVarParticles(5000);
+    
     return EXIT_SUCCESS;
 }

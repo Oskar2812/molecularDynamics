@@ -95,7 +95,7 @@ void startGame(Simulation* sim, int width, int height){
         } else if(isScreenRightClicked(width, height)){
             Vector2 rayPos = GetMousePosition();
             Vector pos = newVector(rayPos.x / width * sim->boxX, (1 - rayPos.y / height) * sim->boxY);
-            externForce(sim,pos,500);
+            externForce(sim,pos,1000);
         }
          
         EndDrawing();
