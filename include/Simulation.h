@@ -21,6 +21,7 @@ typedef struct {
     double* tempList; 
     double* potList;
     Histogram velHist, posHist;
+    double calcForcesTime, runTime, constrCellListTime, targetsTime;
 } Simulation;
 
 Simulation newSimulation(double boxX, double boxY, int nParticles, double (*potential)(double, bool), double kT);
@@ -42,8 +43,6 @@ void freeCellList(Simulation* sim);
 void constructCellList(Simulation* sim);
 
 void printSim(Simulation* sim);
-
-void calculatePotential(Simulation* sim);
 
 void calculateTemperature(Simulation* sim);
 

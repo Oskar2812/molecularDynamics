@@ -63,6 +63,11 @@ Simulation newSimulation(double boxX, double boxY, int nParticles, double (*pote
     result.velHist = newHistogram(100, 0, 0.1 * result.boxX);
     result.posHist = newHistogram(100,0, result.boxX);
 
+    result.calcForcesTime = 0;
+    result.runTime = 0;
+    result.constrCellListTime = 0;
+    result.targetsTime = 0;
+
     return result;
 }
 
@@ -124,8 +129,6 @@ void initialise(Simulation* sim){
         sim->particles[ii].vel.x = sim->particles[ii].vel.x - meanKTx;
         sim->particles[ii].vel.y = sim->particles[ii].vel.y - meanKTy;
     }
-
-    calculatePotential(sim);
     calculateTemperature(sim);
 }
 
@@ -191,6 +194,7 @@ void cellCoords(Simulation* sim, int arrayCoord, int* x, int* y){
 }
 
 void constructCellList(Simulation* sim){
+    double start = omp_get_wtime();
     int cellCount[sim->nCells];
     for(int ii = 0; ii < sim->nCells; ii++){
         cellCount[ii] = 0;
@@ -222,9 +226,12 @@ void constructCellList(Simulation* sim){
     for(int ii = 0; ii < sim->nParticles; ii++){
         addParticle(&sim->cellList[arrayCoords(sim, sim->particles[ii].xCell, sim->particles[ii].yCell)], &sim->particles[ii]);
     }
+
+    sim->constrCellListTime += omp_get_wtime() - start;
 }
 
 Cell** obtainCellTargetsPBC(Simulation* sim, int arrayCoord){
+    double start = omp_get_wtime();
     int xCell, yCell;
     cellCoords(sim, arrayCoord, &xCell, &yCell);
 
@@ -241,6 +248,7 @@ Cell** obtainCellTargetsPBC(Simulation* sim, int arrayCoord){
     result[7] = &sim->cellList[arrayCoords(sim, mod(xCell, sim->nCellsX), mod(yCell + 1, sim->nCellsY))];
     result[8] = &sim->cellList[arrayCoords(sim, mod(xCell + 1, sim->nCellsX), mod(yCell + 1, sim->nCellsY))];
 
+    sim->targetsTime += omp_get_wtime() - start;
     return result;
 }
 
@@ -253,6 +261,7 @@ bool isOutside(Simulation* sim, int xCell, int yCell){
 }
 
 Cell** obtainCellTargetsBox(Simulation* sim, int arrayCoord, int* nTargets){
+    double start = omp_get_wtime();
     int xCell, yCell;
     cellCoords(sim, arrayCoord, &xCell, &yCell);
     *nTargets = 9;
@@ -309,17 +318,21 @@ Cell** obtainCellTargetsBox(Simulation* sim, int arrayCoord, int* nTargets){
         count++;
     }
 
+    sim->targetsTime += omp_get_wtime() - start;
+
     return result;
 }
 
 void calculateForces(Simulation* sim){
+    sim->potEnergy = 0;
+    double start = omp_get_wtime();
     //sim->potEnergy = 0;
     for(int ii = 0; ii < sim->nParticles; ii++){
         sim->particles[ii].force = newVector(0,0);
     }
     constructCellList(sim);
 
-    #pragma omp parallel for shared(sim) schedule(dynamic, 10)
+    #pragma omp parallel for shared(sim) schedule(dynamic, 1)
     for(int ii = 0; ii < sim->nCells; ii++){
         int nTargets = 9;
         Cell** targets;
@@ -330,6 +343,9 @@ void calculateForces(Simulation* sim){
         }
         
         for(int jj = 0; jj < sim->cellList[ii].nParticles; jj++){
+            if(sim->gravFlag){
+                        sim->potEnergy += sim->G * sim->cellList[ii].particles[jj]->pos.y;
+                    }
             for(int cell = 0; cell < nTargets; cell++){
                 for(int kk = 0; kk < targets[cell]->nParticles; kk++){  
                     if(sim->cellList[ii].particles[jj]->id == targets[cell]->particles[kk]->id){continue;}
@@ -344,6 +360,8 @@ void calculateForces(Simulation* sim){
 
                     sim->cellList[ii].particles[jj]->force.x += newForce.x;
                     sim->cellList[ii].particles[jj]->force.y += newForce.y;
+
+                    sim->potEnergy += sim->potential(r, false);
                 }
             }
         }
@@ -351,6 +369,8 @@ void calculateForces(Simulation* sim){
     }
     freeCellList(sim);
     //printSim(sim);
+
+    sim->calcForcesTime += omp_get_wtime() - start;
 }
 
 void addGravity(Simulation* sim){
@@ -370,6 +390,7 @@ void printSim(Simulation* sim){
 }
 
 void run(Simulation* sim, int nSteps, bool equibFlag){
+    double start = omp_get_wtime();
     clearHistogram(&sim->velHist);
     clearHistogram(&sim->posHist);
     for(int tt = 0; tt < nSteps; tt++){
@@ -378,6 +399,7 @@ void run(Simulation* sim, int nSteps, bool equibFlag){
             calculateForces(sim);
             if(sim->gravFlag) addGravity(sim);
         }
+        #pragma omp for
         for(int ii = 0; ii < sim->nParticles; ii++){
             Vector vHalf = add(sim->particles[ii].vel, mul(sim->particles[ii].force, 0.5*dt));
             sim->particles[ii].vel = vHalf;
@@ -421,12 +443,12 @@ void run(Simulation* sim, int nSteps, bool equibFlag){
         //Second Verlet step
         calculateForces(sim);
         if(sim->gravFlag) addGravity(sim);
+        #pragma omp for
         for(int ii = 0; ii < sim->nParticles; ii++){
             Vector newV = add(sim->particles[ii].vel, mul(sim->particles[ii].force, 0.5*dt));
             sim->particles[ii].vel = newV;
         }
         calculateNetForce(sim);
-        calculatePotential(sim);
         calculateTemperature(sim);
 
         if(sim->timestep % 500 == 0){
@@ -449,7 +471,8 @@ void run(Simulation* sim, int nSteps, bool equibFlag){
 
         if(equibFlag && (sim->timestep % 10 == 0)) rescale(sim);
         sim->timestep++;
-    }    
+    }
+    sim->runTime += omp_get_wtime() - start;
 }
 
 void freeSimulation(Simulation* sim){
@@ -464,37 +487,6 @@ void freeCellList(Simulation* sim){
     for(int ii = 0; ii < sim->nCells; ii++){
         free(sim->cellList[ii].particles);
     }
-}
-
-void calculatePotential(Simulation* sim){
-    sim->potEnergy = 0;
-    constructCellList(sim);
-    for(int ii = 0; ii < sim->nCells; ii++){
-        int nTargets = 9;
-        Cell** targets;
-        if(sim->pbcFlag){
-            targets = obtainCellTargetsPBC(sim, ii);
-        } else {
-            targets = obtainCellTargetsBox(sim, ii, &nTargets);
-        }
-        for(int jj = 0; jj < sim->cellList[ii].nParticles; jj++){
-            if(sim->gravFlag){
-                        sim->potEnergy += sim->G * sim->cellList[ii].particles[jj]->pos.y;
-                    }
-            for(int cell = 0; cell < nTargets; cell++){
-                for(int kk = 0; kk < targets[cell]->nParticles; kk++){
-                    if(sim->cellList[ii].particles[jj]->id == targets[cell]->particles[kk]->id){continue;}
-                    Vector sep = sub(sim->cellList[ii].particles[jj]->pos, targets[cell]->particles[kk]->pos);
-
-                    double r = mag(sep);
-                    sim->potEnergy += sim->potential(r, false);                    
-                }  
-            }
-            
-        }
-        free(targets);
-    }
-    freeCellList(sim);
 }
 
 void calculateTemperature(Simulation* sim){
