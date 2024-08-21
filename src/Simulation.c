@@ -319,7 +319,7 @@ void calculateForces(Simulation* sim){
     }
     constructCellList(sim);
 
-    #pragma omp parallel for shared(sim)
+    #pragma omp parallel for shared(sim) schedule(dynamic, 10)
     for(int ii = 0; ii < sim->nCells; ii++){
         int nTargets = 9;
         Cell** targets;
